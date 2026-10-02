@@ -19,11 +19,15 @@ offered under the same terms, except where a file says otherwise.
 
 Files changed from benilla: the skate mode in crates/benilla-app/src/skate/,
 its hooks in crates/benilla-app/src/player/{controller,state}.rs,
-crates/benilla-app/src/{lib,game_plugins}.rs and crates/benilla-app/Cargo.toml,
-the KeyBoneID and accessor additions in crates/benilla-assets/src/model.rs,
-crates/benilla-world/src/rig_anim/pose.rs and
+crates/benilla-app/src/{lib,game_plugins,entities,creature_anim}.rs,
+crates/benilla-app/src/{entities/conform,creature_anim/twist}.rs and
+crates/benilla-app/Cargo.toml, the KeyBoneID and accessor additions in
+crates/benilla-assets/src/model.rs, crates/benilla-world/src/rig_anim.rs,
+crates/benilla-world/src/rig_anim/{pose,global_seq}.rs and
 crates/benilla-world/src/collision/one_sided.rs (with the matching field in
-benilla's test fixtures), plus tools/, setup/, play scripts and these docs.
+benilla's test fixtures), the schedule and world-API ratchets
+(game_plugins.rs, tests/world_api_wall.rs), .github/, plus tools/, setup/,
+play scripts and these docs.
 
 --------------------------------------------------------------------------------
 The skate engine
