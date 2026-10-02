@@ -11,6 +11,10 @@ fully offline against a local server.
 > **Unofficial fan project.** Not affiliated with Blizzard Entertainment or Electronic Arts.
 > **No game files are included.** You need your own copies of both games.
 
+> **Vibe coded, just for laughs.** This whole thing was put together with an AI coding assistant
+> (Claude Code) for fun, on top of other people's serious work (see Credits). Expect rough edges,
+> weird bugs and a skater who doesn't always know where his sword goes. Don't take it seriously.
+
 ## What you need
 
 - **Linux** (Windows isn't supported yet; see [CONTRIBUTING.md](CONTRIBUTING.md)).
