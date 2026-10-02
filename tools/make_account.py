@@ -5,8 +5,9 @@
     python3 tools/make_account.py <user> <password> [--gm 3] [--server server]
     python3 tools/make_account.py --check <user> <password>   # does the password match?
 
-Talks to the database container of the vmangos-deploy checkout in `server/`
-(`docker compose exec database mariadb`), with vmangos-deploy's default root password.
+Talks to the database container of the vmangos-deploy checkout in `server/` (Docker project
+`world-of-skatecraft`, or `$SKATECRAFT_SERVER_PROJECT`), with vmangos-deploy's default root
+password.
 """
 import argparse, hashlib, os, secrets, subprocess, sys
 
@@ -24,9 +25,10 @@ def verifier(user, password, salt):
 
 def sql(server, query):
     out = subprocess.run(
-        ['docker', 'compose', 'exec', '-T', 'database', 'mariadb', '-uroot', '-ppassword',
-         '-N', '-B', 'realmd', '-e', query],
-        cwd=server, check=True, capture_output=True, text=True)
+        ['docker', 'compose', '-p', os.environ.get('SKATECRAFT_SERVER_PROJECT', 'world-of-skatecraft'),
+         '--project-directory', server, '-f', os.path.join(server, 'compose.yaml'),
+         'exec', '-T', 'database', 'mariadb', '-uroot', '-ppassword', '-N', '-B', 'realmd', '-e', query],
+        check=True, capture_output=True, text=True)
     return out.stdout.strip()
 
 

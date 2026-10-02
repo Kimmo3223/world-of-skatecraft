@@ -172,7 +172,9 @@ fi
 
 # ── Local server ───────────────────────────────────────────────────────────────────────────────
 SERVER="$ROOT/server"
-compose() { docker compose --project-directory "$SERVER" -f "$SERVER/compose.yaml" "$@"; }
+# One fixed project name, so the server is the same Docker project whatever the folder is called.
+export SKATECRAFT_SERVER_PROJECT=${SKATECRAFT_SERVER_PROJECT:-world-of-skatecraft}
+compose() { docker compose -p "$SKATECRAFT_SERVER_PROJECT" --project-directory "$SERVER" -f "$SERVER/compose.yaml" "$@"; }
 if [ ! -f "$SERVER/compose.yaml" ]; then
     step "Setting up the local vmangos server"
     [ -d "$SERVER/.git" ] || git clone --quiet "$SERVER_URL" "$SERVER"
@@ -201,7 +203,7 @@ for _ in $(seq 120); do
 done
 echo
 [ "$(docker inspect -f '{{.State.Health.Status}}' "$(compose ps -q mangosd)" 2>/dev/null)" = healthy ] ||
-    die "the world server did not come up within 10 minutes" "look at: docker compose -f server/compose.yaml logs mangosd"
+    die "the world server did not come up within 10 minutes" "look at: docker compose -p world-of-skatecraft -f server/compose.yaml logs mangosd"
 
 # ── Account ────────────────────────────────────────────────────────────────────────────────────
 if [ ! -f "$STATE/account" ]; then

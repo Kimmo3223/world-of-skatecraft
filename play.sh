@@ -8,7 +8,7 @@ if [ -e /etc/NIXOS ] && [ -z "${IN_NIX_SHELL:-}" ]; then
     exec nix-shell "$ROOT/shell.nix" --run "$(printf '%q ' "$0" "$@")"
 fi
 [ -x target/release/benilla ] || { echo "Not built yet: run setup/setup.sh first."; exit 1; }
-docker compose --project-directory server -f server/compose.yaml up -d
+docker compose -p "${SKATECRAFT_SERVER_PROJECT:-world-of-skatecraft}" --project-directory server -f server/compose.yaml up -d
 export WOW_HOST=localhost
 export WOW_SKATE_ASSETS="$ROOT/skate-data/assets"
 export WOW_SKATE_AUDIO="$ROOT/skate-audio"
