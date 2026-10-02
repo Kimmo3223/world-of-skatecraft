@@ -5,6 +5,7 @@
 //! is drawn under it ([`board`]). The controller is an Xbox-style pad, read by the engine itself.
 
 mod board;
+mod export;
 mod rails;
 mod rig;
 mod sound;
@@ -425,6 +426,9 @@ fn preload() {
         .name("skate-preload".into())
         .stack_size(32 * 1024 * 1024)
         .spawn(move || {
+            if let Err(e) = export::ensure(&root) {
+                warn!("skate: cannot derive rig.json/board.json: {e}");
+            }
             let start = std::time::Instant::now();
             match Session::preload(&root) {
                 Ok(()) => info!(

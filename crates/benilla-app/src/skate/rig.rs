@@ -26,6 +26,7 @@ pub(super) fn reference() -> Option<&'static [ReferenceBone]> {
     static RIG: OnceLock<Option<Vec<ReferenceBone>>> = OnceLock::new();
     RIG.get_or_init(|| {
         let root = super::assets_root()?;
+        super::export::ensure(&root).map_err(|e| warn!("skate export: {e}")).ok()?;
         let data = std::fs::read(root.join("rig.json")).ok()?;
         serde_json::from_slice(&data)
             .map_err(|e| warn!("skate rig.json: {e}"))
