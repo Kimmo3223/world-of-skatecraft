@@ -85,6 +85,7 @@ pub mod testing {
         joints: &[bevy::math::Vec3],
     ) -> crate::rig_anim::RigPose {
         let skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: joints
                 .iter()
                 .map(|&t| benilla_assets::ModelJoint {

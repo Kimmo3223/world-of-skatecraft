@@ -1116,6 +1116,7 @@ mod tests {
 
         // A two-bone rest skeleton, enough for `RigPose::new` and a real palette slot.
         let skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: vec![
                 benilla_assets::ModelJoint {
                     parent: -1,

@@ -287,6 +287,7 @@ mod tests {
 
     fn skeleton(joints: Vec<ModelJoint>) -> ModelSkeleton {
         ModelSkeleton {
+            key_bones: Vec::new(),
             joints,
             spine_bone: None,
             head_bone: None,

@@ -247,6 +247,7 @@ mod tests {
             GlobalSeqDrive::new(std::slice::from_ref(&full), &[joint]).expect("keyed channels map"),
         );
         let skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: vec![benilla_assets::ModelJoint {
                 parent: -1,
                 local_translation: Vec3::ZERO,

@@ -886,6 +886,7 @@ mod tests {
                 .spawn((j1_local, j0_global.mul_transform(j1_local)))
                 .id();
             let skeleton = benilla_assets::ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![
                     benilla_assets::ModelJoint {
                         parent: -1,
@@ -1064,6 +1065,7 @@ mod tests {
             .id();
         app.world_mut().entity_mut(j1).add_child(arrow);
         let skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: vec![
                 benilla_assets::ModelJoint {
                     parent: -1,
@@ -1148,6 +1150,7 @@ mod tests {
             });
             let j0 = app.world_mut().spawn((Transform::IDENTITY, j0_global)).id();
             let outer_skeleton = benilla_assets::ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![benilla_assets::ModelJoint {
                     parent: -1,
                     local_translation: Vec3::ZERO,
@@ -1174,6 +1177,7 @@ mod tests {
                 .id();
             app.world_mut().entity_mut(fx_root).add_child(fj0);
             let nested_skeleton = benilla_assets::ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![benilla_assets::ModelJoint {
                     parent: -1,
                     local_translation: Vec3::ZERO,

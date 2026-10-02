@@ -486,6 +486,23 @@ pub(super) struct PendingKnockback {
 }
 
 impl Player {
+    /// The facing (Bevy yaw), the skate mode's starting heading.
+    pub(crate) fn face_yaw(&self) -> f32 {
+        self.face_yaw
+    }
+
+    /// Whether we drive our own body freely, so the skate mode may take it: in world, not free
+    /// flying, not on a server spline, not controlled or reseating, not held by a teleport settle.
+    pub(crate) fn may_skate(&self) -> bool {
+        self.active
+            && !self.detached
+            && !self.server_riding
+            && !self.control_lost
+            && !self.reseat
+            && !self.settling
+            && self.foreign_mover.is_none()
+    }
+
     /// A player whose last streamed movement word is `flags`, for the gates that read it.
     #[cfg(test)]
     pub(crate) fn with_move_flags(flags: u32) -> Self {

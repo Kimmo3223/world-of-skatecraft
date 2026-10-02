@@ -215,6 +215,8 @@ pub struct ModelSkeleton {
     pub spine_bone: Option<u16>,
     /// The KeyBoneID 6 (Head) bone, which takes the rest of that twist (`0x711f10(6, …)`).
     pub head_bone: Option<u16>,
+    /// Each joint's KeyBoneID, −1 for none: the skate mode's retarget finds limbs from these.
+    pub key_bones: Vec<i16>,
 }
 
 /// Bake a [`Skeleton`] to Bevy space, with its inverse bind poses. A vanilla M2 has no
@@ -253,6 +255,7 @@ pub(crate) fn build_skeleton(skel: &Skeleton) -> (ModelSkeleton, Vec<Mat4>) {
             joints,
             spine_bone: key_bone(4),
             head_bone: key_bone(6),
+            key_bones: skel.bones.iter().map(|b| b.key_bone).collect(),
         },
         inverse_bindposes,
     )
@@ -772,6 +775,7 @@ mod tests {
     #[test]
     fn a_boneless_sequence_still_yields_a_clock_clip() {
         let skeleton = ModelSkeleton {
+            key_bones: Vec::new(),
             joints: Vec::new(),
             spine_bone: None,
             head_bone: None,

@@ -100,6 +100,7 @@ mod opaque2d;
 /// Where "the client is going down" is observed, in `Last`; every system that persists state on the
 /// way out registers through it.
 mod shutdown;
+mod skate;
 mod smart_rect;
 mod sound;
 /// The two talent spell-modifier tables (`SMSG_SET_FLAT_/PCT_SPELL_MODIFIER`) and the read that

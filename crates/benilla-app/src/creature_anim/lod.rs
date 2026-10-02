@@ -249,6 +249,7 @@ mod tests {
             .id();
         // The evaluator's pose buffer; no joint entities.
         let skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: vec![benilla_assets::ModelJoint {
                 parent: -1,
                 local_translation: Vec3::ZERO,

@@ -21,6 +21,8 @@ pub(super) fn control(
         Res<camera_dynamics::CameraOptions>,
         // Only `nearclip` is read here, for the self-avatar fade.
         Res<benilla_world::view::ViewDistance>,
+        // While riding, the skate mode's pose drives the body, the camera and the wire.
+        Res<crate::skate::SkateDrive>,
     ),
     mut net: (
         Res<NetCommands>,
@@ -357,6 +359,42 @@ pub(super) fn control(
             }
             // After the park, so a fear's ack carries the stopped word.
             movement_net::ack_speeds_undriven(&net.0 .0, &player, &speed_acks);
+            return;
+        }
+        if pointer.6.active {
+            drive_skating(
+                &pointer.6,
+                &time,
+                &mut player,
+                &mut body,
+                &net.0 .0,
+                &speed_acks,
+                self_guid,
+            );
+            match pointer.6.camera.filter(|_| pointer.6.engine_camera) {
+                Some(camera) => *cam_t = camera,
+                None => {
+                    let head = player.pos + Vec3::Y * (CAPSULE_HEIGHT - CAPSULE_RADIUS);
+                    camera::seat_on_subject(
+                        dt,
+                        0.0,
+                        player.pos,
+                        head,
+                        None,
+                        view_subject,
+                        &mut rig,
+                        &mut cam,
+                        &mut cam_t,
+                        &collide,
+                        &camera::FollowInput {
+                            cfg: follow_cfg,
+                            face_yaw: player.face_yaw,
+                            command: follow_command,
+                        },
+                        &dynamics,
+                    );
+                }
+            }
             return;
         }
         // `0x514560`, after `apply_server_moves`, so this frame's root edge is already in `modes`.
@@ -797,4 +835,56 @@ pub(super) fn control(
         movement_net::park_mover(&net.0 .0, &mut player);
         camera::fly_free(dt, &keys, typing, &mut rig, &mut cam, &mut cam_t);
     }
+}
+
+/// A riding frame: the skater's pose is the body's, and the wire carries it as a
+/// run, FORWARD while the board rolls, with heartbeats every 500 ms. No FALLING is ever sent, so
+/// a drop off a ledge takes no fall damage.
+#[allow(clippy::too_many_arguments)]
+fn drive_skating(
+    drive: &crate::skate::SkateDrive,
+    time: &Time,
+    player: &mut Player,
+    body: &mut BodyQuery,
+    sender: &crossbeam_channel::Sender<crate::net::ClientCommand>,
+    speed_acks: &[crate::net::SpeedChangeMessage],
+    self_guid: Option<u64>,
+) {
+    player.pos = drive.pos;
+    player.face_yaw = drive.yaw;
+    player.model_yaw = drive.yaw;
+    player.vel_y = 0.0;
+    player.horiz_vel = Vec3::ZERO;
+    player.airborne_since = None;
+    if let Ok((_, mut t, ..)) = body.single_mut() {
+        t.translation = player.pos;
+        t.rotation = Quat::from_rotation_y(player.model_yaw);
+    }
+    let flags = if drive.moving() {
+        crate::creature_anim::move_flags::FORWARD
+    } else {
+        0
+    };
+    movement_net::stream_self_movement(
+        sender,
+        player,
+        flags,
+        0.0,
+        movement_net::ArcEdges {
+            jumped: false,
+            wire_launch: false,
+            air_nudged: false,
+            landed: false,
+            fall_time: 0,
+        },
+        time.elapsed_secs(),
+        speed_acks,
+        None,
+        None,
+        movement_net::SkipClock {
+            dt: time.delta_secs(),
+            held: false,
+            mover: player.foreign_mover.or(self_guid),
+        },
+    );
 }

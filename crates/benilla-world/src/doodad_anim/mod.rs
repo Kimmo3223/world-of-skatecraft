@@ -621,6 +621,7 @@ mod tests {
 
     fn skeleton(joints: usize) -> ModelSkeleton {
         ModelSkeleton {
+            key_bones: Vec::new(),
             joints: (0..joints)
                 .map(|_| benilla_assets::ModelJoint {
                     parent: -1,

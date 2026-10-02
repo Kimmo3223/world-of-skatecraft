@@ -37,6 +37,8 @@ pub struct RigPose {
     pub anchors: Vec<(u16, Entity)>,
     /// `locals` changed since the last world pass; starts raised so the bind pose is written.
     pub pose_dirty: bool,
+    /// Each bone's KeyBoneID (−1 for none), from the skeleton: the skate retarget's limb finder.
+    pub key_bones: Vec<i16>,
 }
 
 impl RigPose {
@@ -66,9 +68,15 @@ impl RigPose {
                 .any(|j| j.billboard.is_some() || j.parent_arm.is_some()),
             anchors: Vec::new(),
             pose_dirty: true,
+            key_bones: skeleton.key_bones.clone(),
         };
         rig.compose();
         rig
+    }
+
+    /// Bind-pose local translations, in skeleton order: a bone's pivot less its parent's.
+    pub fn bind_translations(&self) -> &[Vec3] {
+        &self.binds
     }
 
     /// Fold `locals` into `model`, the `flags & 0x7` arm included since the anchors are seated
@@ -476,6 +484,7 @@ mod tests {
             .collect();
         let ours = spawn_root(app);
         let skeleton = ModelSkeleton {
+            key_bones: Vec::new(),
             joints: (0..nbones)
                 .map(|_| benilla_assets::ModelJoint {
                     parent: -1,

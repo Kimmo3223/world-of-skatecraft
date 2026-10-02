@@ -1,0 +1,65 @@
+World of Skatecraft
+
+Skate 3 skateboarding in World of Warcraft 1.12.1, built on benilla.
+Unofficial fan project. Not affiliated with or endorsed by Blizzard
+Entertainment or Electronic Arts. World of Warcraft is a trademark of
+Blizzard Entertainment, Inc.; Skate is a trademark of Electronic Arts Inc.
+
+--------------------------------------------------------------------------------
+benilla
+--------------------------------------------------------------------------------
+
+This repository is a modified copy of benilla, a from-scratch World of
+Warcraft 1.12.1 client in Rust and Bevy, by samwhosung and contributors:
+https://github.com/samwhosung/benilla
+
+benilla is licensed under the MIT license or the Apache License 2.0, at your
+option (LICENSE-MIT, LICENSE-APACHE). World of Skatecraft's own additions are
+offered under the same terms, except where a file says otherwise.
+
+Files changed from benilla: the skate mode in crates/benilla-app/src/skate/,
+its hooks in crates/benilla-app/src/player/{controller,state}.rs,
+crates/benilla-app/src/{lib,game_plugins}.rs and crates/benilla-app/Cargo.toml,
+the KeyBoneID and accessor additions in crates/benilla-assets/src/model.rs,
+crates/benilla-world/src/rig_anim/pose.rs and
+crates/benilla-world/src/collision/one_sided.rs (with the matching field in
+benilla's test fixtures), plus tools/, setup/, play scripts and these docs.
+
+--------------------------------------------------------------------------------
+The skate engine
+--------------------------------------------------------------------------------
+
+Skating runs on the Skate 3 Rust Engine by SK8-ENGINE / Chasm:
+https://github.com/SK8-ENGINE/skate-3-rust-engine
+which in turn rests on dumbad's years of Skate 3 reverse engineering:
+https://github.com/Ethanw05/DumbadsSkate3ModdingTools
+
+The engine crates (skate-host, skate-core, skate-data, skate-net) are not
+included in this repository. Cargo downloads them at build time from the
+2010 Rust Rewrite Mashup by chasmlol, where they were adapted for the IW4L
+skate mode: https://github.com/chasmlol/2010-rust-rewrite-mashup
+They remain their authors' work under their authors' terms.
+
+crates/benilla-app/src/skate/rails.rs is ported from that project's
+crates/render_anim/src/skate/rails.rs (IW4L tree, Apache License 2.0;
+IW4L copyright 2026 vladtrc, https://github.com/vladtrc/iw4L) and stays under
+the Apache License 2.0. The retarget in crates/benilla-app/src/skate/rig.rs
+follows the approach of that project's crates/render_anim/src/skate/rig.rs.
+
+--------------------------------------------------------------------------------
+Tools used by setup (not included)
+--------------------------------------------------------------------------------
+
+vmangos (https://github.com/vmangos/core) and vmangos-deploy
+(https://github.com/mserajnik/vmangos-deploy) run the local server; setup
+downloads them from their own sources. vgmstream (https://vgmstream.org)
+decodes the Skate 3 audio during setup.
+
+--------------------------------------------------------------------------------
+Game content
+--------------------------------------------------------------------------------
+
+No World of Warcraft or Skate 3 game data is contained in this repository or
+in anything built from it. Players use their own copies: the WoW 1.12.1 client
+is read at runtime, and setup converts the player's own Skate 3 files on their
+machine into skate-data/ and skate-audio/, which are never committed.

@@ -66,6 +66,10 @@ rtrb = "0.3"
 mint = "0.5"
 # The gossip greeting's weighted draw, re-rolled per open as in the reference.
 rand = "0.8"
+# Skate 3 mode: the skate engine, fetched from Chasm's 2010 Rust Rewrite Mashup (Kimmo3223's
+# branch adds Linux controller input); not part of this repository. See NOTICE.
+skate-host = { git = "https://github.com/Kimmo3223/2010-rust-rewrite-mashup", rev = "adb684e78ec07654f00e2a9da88d32ae02cc68bd" }
+serde_json = "1"
 
 # Wayland clipboard over the standard `wl_data_device`; arboard's speaks `wlr-data-control`,
 # which GNOME does not implement.

@@ -957,6 +957,7 @@ mod tests {
     fn one_bone(ibps: &mut Assets<SkinnedMeshInverseBindposes>) -> DisplayModel {
         DisplayModel {
             skeleton: ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![ModelJoint {
                     parent: -1,
                     local_translation: Vec3::ZERO,

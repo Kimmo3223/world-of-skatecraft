@@ -720,6 +720,7 @@ mod tests {
         dm.parts = Some(vec![p]);
         // A root and one spherical-billboard spike, as `LShoulder_Plate_PVPAlliance_A_01` has.
         dm.skeleton = benilla_assets::ModelSkeleton {
+            key_bones: Vec::new(),
             joints: vec![
                 benilla_assets::ModelJoint {
                     parent: -1,
@@ -969,6 +970,7 @@ mod tests {
             p.skinned_mesh = Some(skinned_handle());
             dm.parts = Some(vec![p]);
             dm.skeleton = benilla_assets::ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![
                     benilla_assets::ModelJoint {
                         parent: -1,
@@ -1400,6 +1402,7 @@ mod tests {
             p.skinned_mesh = Some(skinned_handle());
             dm.parts = Some(vec![p]);
             dm.skeleton = benilla_assets::ModelSkeleton {
+                key_bones: Vec::new(),
                 joints: vec![benilla_assets::ModelJoint {
                     parent: -1,
                     local_translation: Vec3::ZERO,

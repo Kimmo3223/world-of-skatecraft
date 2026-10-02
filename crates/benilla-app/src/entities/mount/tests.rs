@@ -26,6 +26,7 @@ struct Standing {
 /// A one-bone rig buffer rooted at `frame`, with `anchor` registered as bone 0's consumer anchor.
 fn rig_at(frame: Entity, anchor: Entity) -> RigPose {
     let skeleton = ModelSkeleton {
+        key_bones: Vec::new(),
         joints: vec![ModelJoint {
             parent: -1,
             local_translation: Vec3::ZERO,

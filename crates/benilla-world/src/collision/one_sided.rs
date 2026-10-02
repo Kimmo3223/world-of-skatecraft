@@ -479,6 +479,11 @@ impl FaceProbe {
         self.normal.dot(dir) <= FACING_EPS
     }
 
+    /// World-space vertices at the authored winding.
+    pub fn verts(&self) -> [Vec3; 3] {
+        self.verts
+    }
+
     /// World centroid, where a face's distance ahead is measured from.
     pub fn centroid(&self) -> Vec3 {
         (self.verts[0] + self.verts[1] + self.verts[2]) / 3.0

@@ -41,3 +41,13 @@ __pycache__/
 # The vanilla addon corpus the UI engine's real-addon tests read (third-party content): a symlink
 # beside `WoW`, or `BENILLA_ADDON_CORPUS`.
 /wow-addons-vanilla
+
+# --- World of Skatecraft: generated from the player's own copies, NEVER commit ---
+# Skate 3 data converted from the player's extracted Skate 3 (tools/skate_audio.py, the engine's converter).
+/skate-data/
+/skate-audio/
+# The local vmangos server (vmangos-deploy checkout, its configs, extracted map data, database).
+/server/
+# Setup's log and scratch.
+/setup.log
+/.setup/
