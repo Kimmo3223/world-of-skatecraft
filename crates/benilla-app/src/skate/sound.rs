@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use avian3d::prelude::CollisionLayers;
-use bevy::prelude::*;
 use benilla_world::collision::{GroundDecalSurface, WorldCollision};
+use bevy::prelude::*;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle};
 use kira::{Decibels, Tween};
 
@@ -107,12 +107,14 @@ impl SkateAudio {
 
 /// `WOW_SKATE_AUDIO`, else a `skate-audio` beside or above the working directory.
 fn audio_root() -> Option<PathBuf> {
-    std::env::var_os("WOW_SKATE_AUDIO").map(PathBuf::from).or_else(|| {
-        ["skate-audio", "../skate-audio"]
-            .into_iter()
-            .map(PathBuf::from)
-            .find(|p| p.join("pop_1.wav").is_file())
-    })
+    std::env::var_os("WOW_SKATE_AUDIO")
+        .map(PathBuf::from)
+        .or_else(|| {
+            ["skate-audio", "../skate-audio"]
+                .into_iter()
+                .map(PathBuf::from)
+                .find(|p| p.join("pop_1.wav").is_file())
+        })
 }
 
 /// The decoded sounds, loaded on first ride.
@@ -135,9 +137,7 @@ impl Bank {
         let root = audio_root()?;
         let one = |name: &str| StaticSoundData::from_file(root.join(format!("{name}.wav"))).ok();
         let set = |prefix: &str| -> Vec<StaticSoundData> {
-            (1..)
-                .map_while(|i| one(&format!("{prefix}_{i}")))
-                .collect()
+            (1..).map_while(|i| one(&format!("{prefix}_{i}"))).collect()
         };
         let bank = Self {
             roll_concrete: one("roll_concrete"),

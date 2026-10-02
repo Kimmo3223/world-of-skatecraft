@@ -1,6 +1,7 @@
 # The gates of scripts/gates.sh that need neither a WoW install nor a display, on Linux, for a pull
-# request from a fork: a red one is seen before anyone builds it. The data-gated tests, the engine
-# boot checks and a live run happen on the maintainer's machine before it lands.
+# request from a fork: a red one is seen before anyone builds it. A Windows job checks the game
+# still compiles there (World of Skatecraft has no Windows setup yet). The data-gated tests and a
+# live run happen on the maintainer's machine before it lands.
 name: CI
 
 on:
@@ -50,3 +51,21 @@ jobs:
         run: scripts/pass-span-lint.py
       - name: player-tests
         run: cargo test -p benilla-formats -p benilla-app --no-default-features --lib
+
+  windows:
+    # Compiles only: nothing on Windows can be run here without the games.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: rustup toolchain install && rustc -V
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: check
+        run: cargo check --release -p benilla

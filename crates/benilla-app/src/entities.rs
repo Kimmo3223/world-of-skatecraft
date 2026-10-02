@@ -58,6 +58,7 @@ use live_display::{refresh_live_display, tick_scale_ease};
 
 /// Terrain conform: a model flagged `GlobalModelFlags & 3 ∈ {1,3}` tilts to the ground.
 mod conform;
+pub(crate) use conform::conform_units;
 
 /// The per-unit collision height, the `h` the swim, wade, splash and foam depths are fractions of.
 mod collision_height;

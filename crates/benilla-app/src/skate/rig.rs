@@ -9,8 +9,8 @@
 
 use std::sync::OnceLock;
 
-use bevy::prelude::*;
 use benilla_world::rig_anim::RigPose;
+use bevy::prelude::*;
 
 use super::{SkatePose, METERS_PER_YARD};
 
@@ -26,7 +26,9 @@ pub(super) fn reference() -> Option<&'static [ReferenceBone]> {
     static RIG: OnceLock<Option<Vec<ReferenceBone>>> = OnceLock::new();
     RIG.get_or_init(|| {
         let root = super::assets_root()?;
-        super::export::ensure(&root).map_err(|e| warn!("skate export: {e}")).ok()?;
+        super::export::ensure(&root)
+            .map_err(|e| warn!("skate export: {e}"))
+            .ok()?;
         let data = std::fs::read(root.join("rig.json")).ok()?;
         serde_json::from_slice(&data)
             .map_err(|e| warn!("skate rig.json: {e}"))
@@ -156,7 +158,10 @@ fn map_skeleton(parents: &[i16], pivots: &[Vec3], key_bones: &[i16]) -> Vec<Mapp
         };
         for (left, names) in [
             (true, ["LEFTUPLEG", "LEFTLEG", "LEFTFOOT", "LEFTTOEBASE"]),
-            (false, ["RIGHTUPLEG", "RIGHTLEG", "RIGHTFOOT", "RIGHTTOEBASE"]),
+            (
+                false,
+                ["RIGHTUPLEG", "RIGHTLEG", "RIGHTFOOT", "RIGHTTOEBASE"],
+            ),
         ] {
             let thigh = side(left);
             let knee = thigh.and_then(next);
@@ -178,7 +183,10 @@ fn fits(maps: &[Mapping], pivots: &[Vec3]) -> Vec<Option<(&'static str, Mat4)>> 
     // The skater faces +Z with its left on +X; our model faces −Z with its left on −X.
     let facing = Quat::from_rotation_y(std::f32::consts::PI);
     let mut out = vec![None; pivots.len()];
-    let mapped_parent = |bone: usize| maps.iter().find(|m| m.child.is_some_and(|(c, _)| c == bone));
+    let mapped_parent = |bone: usize| {
+        maps.iter()
+            .find(|m| m.child.is_some_and(|(c, _)| c == bone))
+    };
     for m in maps {
         let Some(bind) = reference_bind(m.skate) else {
             continue;
@@ -234,7 +242,12 @@ pub(super) struct Held {
 
 /// SpineLow's unmapped children off to a side (the hip sheath points, attachments 32 and 33)
 /// ride the Waist bone instead.
-fn hip_riders(parents: &[i16], pivots: &[Vec3], key_bones: &[i16], fits: &[Option<(&str, Mat4)>]) -> Vec<Option<usize>> {
+fn hip_riders(
+    parents: &[i16],
+    pivots: &[Vec3],
+    key_bones: &[i16],
+    fits: &[Option<(&str, Mat4)>],
+) -> Vec<Option<usize>> {
     let key = |k: i16| key_bones.iter().position(|&b| b == k);
     let mut rides = vec![None; parents.len()];
     let (Some(spine), Some(waist)) = (key(key::SPINE_LOW), key(key::WAIST)) else {
@@ -315,19 +328,18 @@ pub(super) fn retarget(
         return;
     }
     // Engine meters around `origin` to our world yards, both ways round a skin.
-    let to_world = Mat4::from_translation(pose.origin)
-        * Mat4::from_scale(Vec3::splat(1.0 / METERS_PER_YARD));
+    let to_world =
+        Mat4::from_translation(pose.origin) * Mat4::from_scale(Vec3::splat(1.0 / METERS_PER_YARD));
     let from_model = Mat4::from_scale(Vec3::splat(METERS_PER_YARD));
     // Each bone's skin: model yards to world yards.
-    let mut skins: Vec<Option<Mat4>> = vec![None; n];
-    for i in 0..n {
-        if let Some((name, fit)) = plan.fits[i] {
-            let (Some(posed), Some(bind)) = (pose.bone(name), reference_bind(name)) else {
-                continue;
-            };
-            skins[i] = Some(to_world * posed * bind.inverse() * fit * from_model);
-        }
-    }
+    let skins: Vec<Option<Mat4>> = plan
+        .fits
+        .iter()
+        .map(|fit| {
+            let (name, fit) = (*fit)?;
+            Some(to_world * pose.bone(name)? * reference_bind(name)?.inverse() * fit * from_model)
+        })
+        .collect();
     let hips = plan
         .fits
         .iter()
@@ -357,9 +369,7 @@ pub(super) fn retarget(
             }
             // Its animated local, unchanged, under its posed parent.
             (None, None, Some(p)) => models[p] * rig.locals[i].to_matrix(),
-            (None, None, None) => {
-                model_from_world * hips * Mat4::from_translation(plan.pivots[i])
-            }
+            (None, None, None) => model_from_world * hips * Mat4::from_translation(plan.pivots[i]),
         };
         if skins[i].is_none() && rider.is_none() && parent.is_some() {
             continue;
@@ -377,7 +387,10 @@ pub(super) fn retarget(
 fn debug_once(what: &str) {
     static SEEN: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
     let mut seen = SEEN.lock().unwrap();
-    if !seen.iter().any(|s| s.split(':').next() == what.split(':').next()) {
+    if !seen
+        .iter()
+        .any(|s| s.split(':').next() == what.split(':').next())
+    {
         info!("skate retarget: {what}");
         seen.push(what.to_string());
     }

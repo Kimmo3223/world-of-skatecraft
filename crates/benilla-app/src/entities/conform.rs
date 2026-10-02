@@ -21,7 +21,7 @@ const TILT_DECAY: f32 = 0.0018;
 /// The tilt carrier a flagged model's root bones hang under, a child of the unit spawned when the
 /// display's `terrain_tilt != 0`; [`conform_units`] writes its rotation, the `0x7106c0` stage.
 #[derive(Component)]
-pub(super) struct ConformNode {
+pub(crate) struct ConformNode {
     /// The unit whose feet sample the ground and whose yaw frames it: for a mount child, the host.
     pub(super) unit: Entity,
     /// The model's `GlobalModelFlags & 3` dispatch mode (1 = pitch, 3 = pitch + roll).
@@ -69,7 +69,7 @@ fn conform_rotation(mode: u8, n_local: Vec3) -> Quat {
 /// the cost at one ray per flagged unit on screen. Nothing shows: an unflagged unit's vector is
 /// never read, and a first-sight seed at the slope seats a mount-up at once, as the reference does.
 #[allow(clippy::type_complexity)] // one Bevy system's full input set
-pub(super) fn conform_units(
+pub(crate) fn conform_units(
     time: Res<Time>,
     spatial: SpatialQuery,
     decals: benilla_world::decal::WorldDecal,

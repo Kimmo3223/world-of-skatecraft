@@ -79,7 +79,9 @@ fn is_instrument_consumer(rel: &str) -> bool {
 }
 
 /// The designed API: every engine item game code may name, with the record that published it
-/// (`wall`: published without one). Adding a row is a claim made in review, with its record.
+/// (`wall`: published without one; `skate`: opened for World of Skatecraft's skate mode, which
+/// orders its retarget after the global sequences and picks rolling sounds by surface). Adding a
+/// row is a claim made in review, with its record.
 const PUBLISHED: &[(&str, &str)] = &[
     ("bgwin::BgWinPlugin", "wall"),
     ("bgwin::background_run", "record"),
@@ -89,6 +91,7 @@ const PUBLISHED: &[(&str, &str)] = &[
     ("build_id::BuildId", "record"),
     ("build_id::banner", "record"),
     ("collision::ColliderEpoch", "record"),
+    ("collision::GroundDecalSurface", "skate"),
     ("collision::MoverTraceExclusions", "record"),
     ("collision::WorldCollision", "record"),
     ("decal::WorldDecal", "record"),
@@ -139,6 +142,7 @@ const PUBLISHED: &[(&str, &str)] = &[
     ("particles::render::EFFECT_DRAW_STATS", "record"),
     ("particles::spawn_emitter", "record"),
     ("ride_frame::RideFrame", "record"),
+    ("rig_anim::apply_global_sequences", "skate"),
     ("rig_anim::AnimParked", "wall"),
     ("rig_anim::GlobalSeqDrive", "wall"),
     ("rig_anim::PosePost", "wall"),

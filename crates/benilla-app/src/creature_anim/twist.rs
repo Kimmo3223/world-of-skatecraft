@@ -75,7 +75,7 @@ fn armed_shares(gap: f32, mounted: bool) -> (f32, f32) {
 /// yaws its subtree about world up through the bone's pivot, `local' = local · Quat(g⁻¹·Y, θ)`
 /// with `g` the bone's rotation up to the unit. The head runs after the spine, so it turns relative
 /// to the twisted spine, as the client composes the residual gap.
-pub(super) fn apply_body_twist(
+pub(crate) fn apply_body_twist(
     // A parked rig is skipped; on wake, `cur != last_out` re-seats `base`.
     mut units: Query<(Entity, &mut BodyTwist), Without<benilla_world::rig_anim::AnimParked>>,
     mut rigs: Query<&mut benilla_world::rig_anim::RigPose>,

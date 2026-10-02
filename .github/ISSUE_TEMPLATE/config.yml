@@ -1,5 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Discord
-    url: https://discord.gg/wJSJx467G4
-    about: Questions, ideas and chat.
+  - name: Questions and help (Discussions)
+    url: https://github.com/Kimmo3223/world-of-skatecraft/discussions
+    about: Best-effort help. Attach setup.log and the output of setup/setup.sh --doctor.

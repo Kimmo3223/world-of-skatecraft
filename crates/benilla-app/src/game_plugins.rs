@@ -678,11 +678,18 @@ pub(crate) mod schedule_tests {
     ///   movement flags of the caster (`Player::move_flags`) and its target
     ///   (`RemoteMotion::flags`), and those writers touch `login_pitch`, the settle fields and a
     ///   rider's pose, never the flags.
+    /// - the skate mode (World of Skatecraft): `skate::board::update` against the other writers of
+    ///   `Assets<Mesh>`, `Assets<StandardMaterial>` and `Assets<Image>` (the glue screens, the
+    ///   portrait booths, the UI model tiles, the world streamers): it adds and rewrites only the
+    ///   board's own handles; `skate::update` and `skate::sound::update` against the writers of
+    ///   `Player`, `Window` and the mover exclusions, of which they read the pose gates once a
+    ///   frame (a gate seen a frame late starts or ends a ride a frame late), and against the
+    ///   sheath requests' other writers, which the driver applies in any order.
     ///
     /// Raising the ceiling is a claim that a new undeclared order is acceptable: make it with the
     /// reason read off the dump, or declare the order (`.after`, a set, a `chain`). A resource
     /// that commutes by construction belongs in [`Classes`].
-    const UPDATE_ACTIONABLE_CEILING: usize = 4_860;
+    const UPDATE_ACTIONABLE_CEILING: usize = 4_893;
     const UPDATE_ACTIONABLE_SLACK: usize = 40;
 
     fn ratchet(what: &str, n: usize, ceiling: usize, slack: usize) {

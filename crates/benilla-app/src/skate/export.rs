@@ -48,9 +48,8 @@ fn export(assets: &Path) -> Result<(), String> {
     .inverse();
     let rig = names
         .iter()
-        .zip(inverse_binds.chunks_exact(16))
-        .map(|(name, inverse)| {
-            let inverse: [f32; 16] = inverse.try_into().expect("chunks of 16");
+        .zip(inverse_binds.as_chunks::<16>().0)
+        .map(|(name, &inverse)| {
             let bind = DMat4::from_cols_array(&inverse.map(f64::from)).inverse() * basis_inverse;
             RigBone {
                 name,
@@ -102,8 +101,10 @@ fn export(assets: &Path) -> Result<(), String> {
             .collect();
         let indices = glb
             .integers(index(&primitive["indices"])?)?
-            .chunks_exact(3)
-            .flat_map(|t| [t[0], t[2], t[1]])
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .flat_map(|&[a, b, c]| [a, c, b])
             .collect();
         surfaces.push(BoardSurface {
             material: format!("iw4l_skate/{material_name}"),

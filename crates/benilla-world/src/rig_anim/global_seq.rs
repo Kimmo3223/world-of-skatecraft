@@ -76,7 +76,7 @@ impl GlobalSeqDrive {
 
 /// Sample each drive at `sceneNow − anchor`, wrapped in f64 for a long uptime, and write only the
 /// driven components, so the eyelid blinks over any gait.
-fn apply_global_sequences(
+pub fn apply_global_sequences(
     time: Res<Time>,
     mut drives: Query<(Entity, &mut GlobalSeqDrive, Has<super::AnimParked>)>,
     mut joints: Query<&mut Transform>,

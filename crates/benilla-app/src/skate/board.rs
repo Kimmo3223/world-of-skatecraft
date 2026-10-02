@@ -52,7 +52,9 @@ fn model() -> Option<&'static Model> {
     MODEL
         .get_or_init(|| {
             let root = super::assets_root()?;
-            super::export::ensure(&root).map_err(|e| warn!("skate export: {e}")).ok()?;
+            super::export::ensure(&root)
+                .map_err(|e| warn!("skate export: {e}"))
+                .ok()?;
             let data = std::fs::read(root.join("board.json")).ok()?;
             serde_json::from_slice(&data)
                 .map_err(|e| warn!("skate board.json: {e}"))
@@ -60,6 +62,10 @@ fn model() -> Option<&'static Model> {
         })
         .as_ref()
 }
+
+/// Marks the board's surface entities, the only transforms [`update`] writes.
+#[derive(Component)]
+pub(super) struct BoardPart;
 
 /// The spawned board: one entity a surface, positioned at the board each frame.
 #[derive(Resource, Default)]
@@ -109,7 +115,10 @@ fn spawn(
                 Mesh::ATTRIBUTE_POSITION,
                 vec![[0.0f32; 3]; s.vertices.len()],
             );
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0f32, 1.0, 0.0]; s.vertices.len()]);
+            mesh.insert_attribute(
+                Mesh::ATTRIBUTE_NORMAL,
+                vec![[0.0f32, 1.0, 0.0]; s.vertices.len()],
+            );
             mesh.insert_attribute(
                 Mesh::ATTRIBUTE_UV_0,
                 s.vertices.iter().map(|v| uv(v.uv)).collect::<Vec<_>>(),
@@ -129,6 +138,7 @@ fn spawn(
                     Transform::default(),
                     Visibility::Hidden,
                     NoFrustumCulling,
+                    BoardPart,
                 ))
                 .id();
             (entity, mesh)
@@ -144,7 +154,7 @@ pub(super) fn update(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut parts: Query<(&mut Transform, &mut Visibility)>,
+    mut parts: Query<(&mut Transform, &mut Visibility), With<BoardPart>>,
 ) {
     let Some(model) = model() else {
         return;
@@ -158,7 +168,13 @@ pub(super) fn update(
         return;
     }
     if board.parts.is_empty() {
-        board.parts = spawn(model, &mut commands, &mut meshes, &mut materials, &mut images);
+        board.parts = spawn(
+            model,
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            &mut images,
+        );
         return;
     }
     let Some(reference) = reference() else {
@@ -181,9 +197,9 @@ pub(super) fn update(
         return;
     };
     // Vertices relative to the deck, so no vertex is a far-off world coordinate.
-    let anchor = pose
-        .bone("SKATEBOARD_ROOT")
-        .map_or(pose.origin, |m| from_skate(m.w_axis.truncate(), pose.origin));
+    let anchor = pose.bone("SKATEBOARD_ROOT").map_or(pose.origin, |m| {
+        from_skate(m.w_axis.truncate(), pose.origin)
+    });
     for (surface, (entity, handle)) in model.surfaces.iter().zip(&board.parts) {
         let Some(mesh) = meshes.get_mut(handle) else {
             continue;
@@ -204,9 +220,16 @@ pub(super) fn update(
             normals.push(n.normalize_or(Vec3::Y).to_array());
         }
         if std::env::var_os("WOW_SKATE_DEBUG").is_some() {
-            let lo = positions.iter().fold(Vec3::MAX, |a, p| a.min(Vec3::from_array(*p)));
-            let hi = positions.iter().fold(Vec3::MIN, |a, p| a.max(Vec3::from_array(*p)));
-            info!("skate board debug: surface {} spans {:?}..{:?} at {:?}", surface.texture, lo, hi, anchor);
+            let lo = positions
+                .iter()
+                .fold(Vec3::MAX, |a, p| a.min(Vec3::from_array(*p)));
+            let hi = positions
+                .iter()
+                .fold(Vec3::MIN, |a, p| a.max(Vec3::from_array(*p)));
+            info!(
+                "skate board debug: surface {} spans {:?}..{:?} at {:?}",
+                surface.texture, lo, hi, anchor
+            );
         }
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);

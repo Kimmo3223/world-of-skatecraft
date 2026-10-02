@@ -11,7 +11,7 @@ mod pose;
 
 pub(crate) use compose::seed_rig_rows;
 pub use compose::{finalize_rig_worlds, PosePost};
-pub use global_seq::GlobalSeqDrive;
+pub use global_seq::{apply_global_sequences, GlobalSeqDrive};
 pub use pose::{RigAnchor, RigFrame, RigPose};
 
 /// Parks this rig's per-bone pose evaluation: the evaluator and the pose post-passes skip it,
