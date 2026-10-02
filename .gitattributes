@@ -1,0 +1,4 @@
+# Scripts keep the line endings their shell needs, whatever the clone's autocrlf says.
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf

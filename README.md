@@ -17,7 +17,8 @@ fully offline against a local server.
 
 ## What you need
 
-- **Linux** (Windows isn't supported yet; see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- **Linux**, or **Windows (experimental, testers wanted)**: the Windows setup is new and untested
+  on real machines; please report how it goes (see Help).
 - **World of Warcraft 1.12.1**, English client (build 5875).
 - **Skate 3 for Xbox 360, extracted**: the folder with `default.xex` and `data/` (an ISO file
   doesn't work; extract it first).
@@ -26,10 +27,20 @@ fully offline against a local server.
 
 ## Install
 
+Linux:
+
 ```sh
 git clone https://github.com/Kimmo3223/world-of-skatecraft.git
 cd world-of-skatecraft
 setup/setup.sh
+```
+
+Windows (experimental): install [Git](https://git-scm.com), then in a terminal:
+
+```bat
+git clone https://github.com/Kimmo3223/world-of-skatecraft.git C:\skatecraft
+cd C:\skatecraft
+setup.bat
 ```
 
 Setup checks your machine and tells you exactly what to install if something is missing, asks
@@ -39,7 +50,8 @@ creates your game account and builds the game. Step-by-step details: [INSTALL.md
 ## Play
 
 ```sh
-./play.sh
+./play.sh        # Linux
+play.bat         # Windows
 ```
 
 Log in with the account you made during setup and create a character.
@@ -57,9 +69,14 @@ Your account is a GM, so chat commands like `.tele stormwind`, `.levelup 59` and
 
 This is a hobby project with **best-effort help only**. If something breaks:
 
-1. Run `setup/setup.sh --doctor` and read [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+1. Run the doctor (`setup/setup.sh --doctor`, or on Windows
+   `powershell -ExecutionPolicy Bypass -File setup\setup.ps1 -Doctor`) and read
+   [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 2. Still stuck? Ask in [Discussions](../../discussions) (Q&A) and attach your `setup.log` and the
    doctor output. Questions without them may go unanswered.
+
+**Windows testers:** whether it works or not, a post in Discussions with your Windows version,
+GPU, controller and `setup.log` helps a lot.
 
 ## Credits
 

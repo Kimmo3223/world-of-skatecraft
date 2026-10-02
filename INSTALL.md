@@ -1,6 +1,6 @@
-# Installing World of Skatecraft (Linux)
+# Installing World of Skatecraft
 
-`setup/setup.sh` does all of this for you. This page explains what it does and what it asks, so
+`setup/setup.sh` (Linux) or `setup.bat` (Windows, experimental) does all of this for you. This page explains what it does and what it asks, so
 you know what to expect. If a step fails, setup stops, says what to fix, and continues from that
 step when you run it again.
 
@@ -63,3 +63,33 @@ Afterwards, start the game with `./play.sh`.
 - Stop the server: `docker compose -p world-of-skatecraft -f server/compose.yaml down`.
 - Update: `git pull`, then `setup/setup.sh` again (it only rebuilds).
 - New account or new password: `python3 tools/make_account.py <name> <password>`.
+
+## 5. Windows (experimental)
+
+The Windows setup does the same steps as the Linux one, but nobody has run it on a real Windows
+PC yet. If you try it, please post how it went in Discussions (see the README).
+
+1. Install the tools. In a terminal (PowerShell or Command Prompt):
+
+   ```bat
+   winget install -e --id Git.Git
+   winget install -e --id Rustlang.Rustup
+   winget install -e --id Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+   winget install -e --id Python.Python.3.12
+   winget install -e --id Docker.DockerDesktop
+   ```
+
+   Restart Windows afterwards, then start Docker Desktop and let it finish starting (it uses
+   WSL 2; it will ask to set that up the first time).
+2. Clone to a short path (long paths can break the build) and run setup:
+
+   ```bat
+   git clone https://github.com/Kimmo3223/world-of-skatecraft.git C:\skatecraft
+   cd C:\skatecraft
+   setup.bat
+   ```
+
+3. Start the game with `play.bat`.
+
+The folders are the same as on Linux, with `WoW` as a junction (a folder link) instead of a
+symlink. Stop the server with `docker compose -p world-of-skatecraft -f server\compose.yaml down`.

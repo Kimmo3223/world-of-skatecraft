@@ -51,3 +51,23 @@ Steam is running with Steam Input, close Steam or turn Steam Input off for the p
 
 **No skating sounds.** `skate-audio/` is missing or the sound conversion failed: delete
 `skate-audio/` and run setup again.
+
+## Windows (experimental)
+
+**"running scripts is disabled on this system".** Use `setup.bat`, which runs the script with
+`-ExecutionPolicy Bypass`, instead of starting `setup.ps1` directly.
+
+**"python" opens the Microsoft Store.** Install Python (`winget install -e --id Python.Python.3.12`),
+then turn off the `python.exe` App execution alias (Settings > Apps > Advanced app settings > App
+execution aliases).
+
+**"Docker Desktop running" is missing.** Start Docker Desktop and wait until it says the engine is
+running, then run setup again. It needs virtualization enabled in your BIOS and WSL 2.
+
+**The build fails with linker errors (`link.exe` not found).** The Visual Studio C++ build tools
+are missing; run the BuildTools `winget` line from INSTALL.md and open a new terminal.
+
+**The build fails with "path too long".** Move the repo to a short path such as `C:\skatecraft`.
+
+**The build is very slow.** Antivirus scanning `target\` slows Rust builds a lot; add the repo
+folder as an exclusion in Windows Security if you're comfortable with that.
