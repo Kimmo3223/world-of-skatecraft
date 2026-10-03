@@ -3,7 +3,7 @@
 # the Skateboarding profession) and points a vmangos-deploy checkout's compose.yaml at it.
 # setup/setup.sh runs this for server/; for another vmangos-deploy checkout:
 #   setup/build-server.sh ~/path/to/vmangos-deploy && docker compose -f ~/path/to/vmangos-deploy/compose.yaml up -d
-# The first build compiles vmangos (30-60 minutes). SKATECRAFT_BUILD_JOBS sets its parallelism
+# The first build compiles vmangos (a few minutes). SKATECRAFT_BUILD_JOBS sets its parallelism
 # (default 4, so the PC stays usable).
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)

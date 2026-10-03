@@ -73,3 +73,4 @@ No World of Warcraft or Skate 3 game data is contained in this repository or
 in anything built from it. Players use their own copies: the WoW 1.12.1 client
 is read at runtime, and setup converts the player's own Skate 3 files on their
 machine into skate-data/ and skate-audio/, which are never committed.
+docs/media/ holds a short recording of the project in play, for the README.

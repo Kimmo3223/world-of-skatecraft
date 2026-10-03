@@ -194,7 +194,7 @@ if [ ! -d "$SERVER/storage/mangosd/extracted-data/maps" ]; then
         "$SERVER_IMAGE" extract-client-data </dev/null ||
         die "map extraction failed (see the lines above)"
 fi
-step "Building the server with the Skateboarding profession (first time: 30-60 minutes)"
+step "Building the server with the Skateboarding profession (a few minutes)"
 "$ROOT/setup/build-server.sh" "$SERVER" || die "the server build failed (see the lines above)"
 step "Starting the server"
 compose up -d

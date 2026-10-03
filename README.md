@@ -1,8 +1,14 @@
 # World of Skatecraft
 
-Skate 3 skateboarding in World of Warcraft 1.12.1. Press **J** and your character drops onto a
-board, with Skate 3's own physics: flick-it tricks, grinds on any ledge, powerslides and bails,
-anywhere in Azeroth. Your own character does the tricks, in your own gear.
+Skate 3 skateboarding in World of Warcraft 1.12.1. Summon your skateboard like a mount and your
+character drops onto it, with Skate 3's own physics: flick-it tricks, grinds on any ledge,
+powerslides and bails, anywhere in Azeroth. Your own character does the tricks, in your own gear.
+Skateboarding is a profession: land tricks to level it, earn experience and unlock skate abilities
+such as Rocket Boost and Moon Jump.
+
+[![Summoning the skateboard in Goldshire](docs/media/skateboarding.webp)](docs/media/skateboarding.mp4)
+
+*Click for the video with sound.*
 
 Built on [benilla](https://github.com/samwhosung/benilla), a from-scratch WoW 1.12.1 client in
 Rust, and the [Skate 3 Rust Engine](https://github.com/SK8-ENGINE/skate-3-rust-engine). It runs
@@ -23,7 +29,8 @@ fully offline against a local server.
 - **Skate 3 for Xbox 360, extracted**: the folder with `default.xex` and `data/` (an ISO file
   doesn't work; extract it first).
 - **An Xbox-style controller.**
-- **Docker**, about **20 GB** free disk, and a few hours once for the server's map extraction.
+- **Docker**, about **20 GB** free disk, and a few hours once for the server's map extraction
+  (plus a few minutes to build the server with the Skateboarding profession).
 
 ## Install
 
@@ -79,8 +86,8 @@ abilities, buffs to drag onto your action bar; they work only while you are on t
 | 225 | Speed Demon | push harder, roll faster | 30 s | 3 min |
 | 300 | Moon Jump | lighter gravity in the air | 20 s | 5 min |
 
-The profession needs the patched server that setup builds. On another server **J** just hops on
-and off the board.
+The profession needs the patched server that the Linux setup builds (the Windows setup still runs
+the stock server). On another server **J** just hops on and off the board.
 
 Your account is a GM, so chat commands like `.tele stormwind`, `.levelup 59` and
 `.additem <id>` work.
