@@ -58,9 +58,28 @@ Log in with the account you made during setup and create a character.
 
 | Key | |
 |---|---|
-| **J** | hop on / off the board |
+| **J** | summon / dismiss your skateboard |
 | **K** | switch between the WoW camera and the Skate 3 camera |
 | controller | skate (Skate 3 controls) |
+
+### Skateboarding, the profession
+
+Every character knows **Summon Skateboard** (spellbook, General tab): it casts like a mount and
+puts you on the board until you cancel the buff or press **J** again. Skateboarding is a
+secondary skill, 1 to 300, in your Skills tab. Each line of tricks you land raises it (bigger
+lines raise it faster) and gives your character experience. As the skill grows you learn skate
+abilities, buffs to drag onto your action bar; they work only while you are on the board:
+
+| Skill | Ability | Effect | Lasts | Cooldown |
+|---|---|---|---|---|
+| 1 | Summon Skateboard | ride | until cancelled | none |
+| 75 | Ollie Boost | pop much higher | 30 s | 2 min |
+| 150 | Rocket Boost | a burst forward | instant | 30 s |
+| 225 | Speed Demon | push harder, roll faster | 30 s | 3 min |
+| 300 | Moon Jump | lighter gravity in the air | 20 s | 5 min |
+
+The profession needs the patched server that setup builds. On another server **J** just hops on
+and off the board.
 
 Your account is a GM, so chat commands like `.tele stormwind`, `.levelup 59` and
 `.additem <id>` work.

@@ -1,0 +1,411 @@
+diff --git a/src/game/CMakeLists.txt b/src/game/CMakeLists.txt
+index 4352b9f..4b8c728 100644
+--- a/src/game/CMakeLists.txt
++++ b/src/game/CMakeLists.txt
+@@ -19,6 +19,7 @@ set (game_SRCS
+     AccountMgr.cpp
+     AuraRemovalMgr.cpp
+     AutoBroadCastMgr.cpp
++    Skatecraft.cpp
+     Camera.cpp
+     Conditions.cpp
+     CreatureGroups.cpp
+@@ -252,6 +253,7 @@ set (game_SRCS
+     AccountMgr.h
+     AuraRemovalMgr.h
+     AutoBroadCastMgr.h
++    Skatecraft.h
+     Camera.h
+     ClientDefines.h
+     Conditions.h
+diff --git a/src/game/Database/DBCStores.cpp b/src/game/Database/DBCStores.cpp
+index e0d6401..baa8893 100644
+--- a/src/game/Database/DBCStores.cpp
++++ b/src/game/Database/DBCStores.cpp
+@@ -25,6 +25,7 @@
+ #include "DBCfmt.h"
+ #include "SpellMgr.h"
+ #include "ObjectMgr.h"
++#include "Skatecraft.h"
+ 
+ #include <map>
+ #include <vector>
+@@ -421,6 +422,7 @@ void LoadDBCStores(std::string const& dataPath)
+         if (SkillRaceClassInfoEntry const* entry = sSkillRaceClassInfoStore.LookupEntry(i))
+             if (sSkillLineStore.LookupEntry(entry->skillId))
+                 SkillRaceClassInfoBySkill.insert(SkillRaceClassInfoMap::value_type(entry->skillId, entry));
++    Skatecraft::LoadSkillLine();
+ 
+     // error checks
+     if (badDbcFiles.size() >= DBCFilesCount)
+diff --git a/src/game/Handlers/CharacterHandler.cpp b/src/game/Handlers/CharacterHandler.cpp
+index cdabf42..a013c4f 100644
+--- a/src/game/Handlers/CharacterHandler.cpp
++++ b/src/game/Handlers/CharacterHandler.cpp
+@@ -29,6 +29,7 @@
+ #include "World.h"
+ #include "ObjectMgr.h"
+ #include "Player.h"
++#include "Skatecraft.h"
+ #include "Guild.h"
+ #include "GuildMgr.h"
+ #include "ObjectAccessor.h"
+@@ -603,6 +604,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
+     //sLog.Out(LOG_BASIC, LOG_LVL_DEBUG, "Player %s added to Map.",pCurrChar->GetName());
+ 
+     pCurrChar->SendInitialPacketsAfterAddToMap();
++    Skatecraft::OnLogin(pCurrChar);
+     if (alreadyOnline)
+         pCurrChar->SendInitWorldStates(pCurrChar->GetCachedZoneId());
+ 
+diff --git a/src/game/Handlers/ChatHandler.cpp b/src/game/Handlers/ChatHandler.cpp
+index 47f576d..2004e85 100644
+--- a/src/game/Handlers/ChatHandler.cpp
++++ b/src/game/Handlers/ChatHandler.cpp
+@@ -40,6 +40,7 @@
+ #include "CellImpl.h"
+ #include "Anticheat.h"
+ #include "AccountMgr.h"
++#include "Skatecraft.h"
+ 
+ bool WorldSession::SanitizeChatMessage(std::string& msg, uint32 lang, uint32 msgType)
+ {
+@@ -156,6 +157,9 @@ void WorldSession::HandleChatMessageOpcode(WorldPackets::Chat::ChatMessage const
+         return;
+     }
+ 
++    if (packet.lang == LANG_ADDON && _player && Skatecraft::HandleAddonMessage(_player, packet.message))
++        return;
++
+     if (!IsLanguageAllowedForChatType(packet.lang, packet.type))
+     {
+         sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "CHAT: Wrong language %u received for chat type %u.", packet.lang, packet.type);
+diff --git a/src/game/Skatecraft.cpp b/src/game/Skatecraft.cpp
+new file mode 100644
+index 0000000..3d23c78
+--- /dev/null
++++ b/src/game/Skatecraft.cpp
+@@ -0,0 +1,191 @@
++#include "Skatecraft.h"
++#include "Database/DBCStores.h"
++#include "Chat.h"
++#include "Player.h"
++#include "SpellMgr.h"
++#include "Timer.h"
++
++#include <cstdlib>
++#include <unordered_map>
++
++extern SkillRaceClassInfoMap SkillRaceClassInfoBySkill;
++
++namespace Skatecraft
++{
++    // SpellIcon.dbc
++    constexpr uint32 ICON_MECHASTRIDER = 1240;
++    constexpr uint32 ICON_BOOTS        = 230;
++    constexpr uint32 ICON_FLARE        = 136;
++    constexpr uint32 ICON_SPRINT       = 516;
++    constexpr uint32 ICON_MOONGLOW     = 46;
++
++    // A skill tier of one 300 step, so the skill keeps its own max rather than following level.
++    constexpr uint32 SKILL_TIER_300 = 181;
++    constexpr uint32 SKILL_CATEGORY_SECONDARY = 9;
++
++    // Lines closer together than this are not counted (ms).
++    constexpr uint32 LINE_INTERVAL = 1000;
++    // A reported line is clamped to this many points.
++    constexpr float MAX_LINE_POINTS = 100000.f;
++
++    struct Unlock { uint32 skill; uint32 spell; };
++    constexpr Unlock UNLOCKS[] = {
++        {   1, SPELL_SUMMON_SKATEBOARD },
++        {  75, SPELL_OLLIE_BOOST },
++        { 150, SPELL_ROCKET_BOOST },
++        { 225, SPELL_SPEED_DEMON },
++        { 300, SPELL_MOON_JUMP },
++    };
++
++    static char s_skillName[] = "Skateboarding";
++    static char s_empty[] = "";
++    static SkillLineEntry s_skillLine;
++    static SkillRaceClassInfoEntry s_raceClass;
++
++    static std::unordered_map<uint32, uint32> s_lastLine; // player guid low -> ms
++
++    void LoadSkillLine()
++    {
++        s_skillLine.id = SKILL_SKATEBOARDING;
++        s_skillLine.categoryId = SKILL_CATEGORY_SECONDARY;
++        for (auto& name : s_skillLine.name)
++            name = s_empty;
++        s_skillLine.name[0] = s_skillName;
++        s_skillLine.spellIcon = ICON_MECHASTRIDER;
++        if (sSkillLineStore.LookupEntry(SKILL_SKATEBOARDING) || !sSkillLineStore.InsertEntry(SKILL_SKATEBOARDING, &s_skillLine))
++        {
++            sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "Skatecraft: skill line %u is taken or out of range; skateboarding is off.", SKILL_SKATEBOARDING);
++            return;
++        }
++
++        s_raceClass.skillId = SKILL_SKATEBOARDING;
++        s_raceClass.raceMask = 0;
++        s_raceClass.classMask = 0;
++        s_raceClass.flags = 0;
++        s_raceClass.reqLevel = 0;
++        s_raceClass.skillTierId = SKILL_TIER_300;
++        SkillRaceClassInfoBySkill.insert(SkillRaceClassInfoMap::value_type(SKILL_SKATEBOARDING, &s_raceClass));
++    }
++
++    static void AddSpell(uint32 id, char const* name, uint32 icon, uint32 castTimeIndex, uint32 durationIndex, uint32 cooldown, bool aura)
++    {
++        SpellEntry* spell = sSpellMgr.AddCustomSpell(id);
++        spell->Custom |= SPELL_CUSTOM_POSITIVE; // a buff we may cancel, not a debuff
++        spell->SpellName[0] = name;
++        spell->SpellIconID = icon;
++        spell->activeIconID = icon;
++        spell->CastingTimeIndex = castTimeIndex;
++        spell->DurationIndex = durationIndex;
++        spell->RecoveryTime = cooldown;
++        spell->StartRecoveryCategory = 133; // the global cooldown
++        spell->StartRecoveryTime = 1500;
++        spell->rangeIndex = 1;              // self
++        spell->baseLevel = 1;
++        spell->spellLevel = 1;
++        spell->InterruptFlags = castTimeIndex > 1 ? 0x0F : 0;
++        spell->Effect[EFFECT_INDEX_0] = aura ? SPELL_EFFECT_APPLY_AURA : SPELL_EFFECT_DUMMY;
++        spell->EffectApplyAuraName[EFFECT_INDEX_0] = aura ? SPELL_AURA_DUMMY : 0;
++        spell->EffectImplicitTargetA[EFFECT_INDEX_0] = TARGET_UNIT_CASTER;
++        spell->EffectDieSides[EFFECT_INDEX_0] = 1;
++        spell->DmgMultiplier[EFFECT_INDEX_0] = 1.f;
++    }
++
++    void LoadSpells()
++    {
++        // SpellCastTimes.dbc: 1 instant, 16 1.5 s. SpellDuration.dbc: 21 until cancelled, 2 30 s, 18 20 s, 36 1 s.
++        AddSpell(SPELL_SUMMON_SKATEBOARD, "Summon Skateboard", ICON_MECHASTRIDER, 16, 21, 0, true);
++        AddSpell(SPELL_OLLIE_BOOST, "Ollie Boost", ICON_BOOTS, 1, 2, 2 * MINUTE * IN_MILLISECONDS, true);
++        AddSpell(SPELL_ROCKET_BOOST, "Rocket Boost", ICON_FLARE, 1, 36, 30 * IN_MILLISECONDS, true);
++        AddSpell(SPELL_SPEED_DEMON, "Speed Demon", ICON_SPRINT, 1, 2, 3 * MINUTE * IN_MILLISECONDS, true);
++        AddSpell(SPELL_MOON_JUMP, "Moon Jump", ICON_MOONGLOW, 1, 18, 5 * MINUTE * IN_MILLISECONDS, true);
++    }
++
++    static void LearnUnlocked(Player* player)
++    {
++        uint32 skill = player->GetSkillValueBase(SKILL_SKATEBOARDING);
++        for (auto const& unlock : UNLOCKS)
++            if (skill >= unlock.skill && !player->HasSpell(unlock.spell))
++                player->LearnSpell(unlock.spell, false);
++    }
++
++    void OnLogin(Player* player)
++    {
++        if (!sSkillLineStore.LookupEntry(SKILL_SKATEBOARDING))
++            return;
++        if (!player->HasSkill(SKILL_SKATEBOARDING))
++            player->SetSkill(SKILL_SKATEBOARDING, 1, SKILL_MAX);
++        LearnUnlocked(player);
++    }
++
++    // Points a line needs to raise the skill at `skill`.
++    static float PointsNeeded(uint32 skill)
++    {
++        return 100.f + 10.f * skill;
++    }
++
++    static void LandLine(Player* player, float points)
++    {
++        if (!player->HasSkill(SKILL_SKATEBOARDING) || !player->HasAura(SPELL_SUMMON_SKATEBOARD))
++            return;
++
++        uint32 now = WorldTimer::getMSTime();
++        uint32& last = s_lastLine[player->GetGUIDLow()];
++        if (last && WorldTimer::getMSTimeDiff(last, now) < LINE_INTERVAL)
++            return;
++        last = now;
++
++        points = std::min(points, MAX_LINE_POINTS);
++        uint32 skill = player->GetSkillValueBase(SKILL_SKATEBOARDING);
++        float ratio = points / PointsNeeded(skill);
++
++        // A line worth the skill raises it by one, a bigger one by up to three.
++        uint32 gain = ratio >= 4.f ? 3 : ratio >= 2.f ? 2 : ratio >= 1.f ? 1 : 0;
++        if (gain && skill < SKILL_MAX)
++        {
++            player->SetSkill(SKILL_SKATEBOARDING, std::min(skill + gain, SKILL_MAX), SKILL_MAX);
++            LearnUnlocked(player);
++        }
++
++        // Character XP: up to about one and a half same-level kills per line.
++        uint32 kill = 45 + 5 * player->GetLevel();
++        uint32 xp = uint32(kill * std::min(ratio, 3.f) / 2.f);
++        if (xp)
++            player->GiveXP(xp, nullptr);
++    }
++
++    bool HandleAddonMessage(Player* player, std::string const& message)
++    {
++        static std::string const prefix = "SKATECRAFT\t";
++        if (message.compare(0, prefix.size(), prefix) != 0)
++            return false;
++        std::string body = message.substr(prefix.size());
++        if (body.compare(0, 2, "L\t") == 0)
++        {
++            float points = float(std::atof(body.c_str() + 2));
++            if (points > 0.f)
++                LandLine(player, points);
++        }
++        return true;
++    }
++
++    SpellCastResult CheckCast(Unit const* caster, SpellEntry const* spell)
++    {
++        switch (spell->Id)
++        {
++            case SPELL_SUMMON_SKATEBOARD:
++                if (caster->IsMounted())
++                    return SPELL_FAILED_NOT_MOUNTED;
++                if (caster->IsInCombat())
++                    return SPELL_FAILED_AFFECTING_COMBAT;
++                break;
++            case SPELL_OLLIE_BOOST:
++            case SPELL_ROCKET_BOOST:
++            case SPELL_SPEED_DEMON:
++            case SPELL_MOON_JUMP:
++                if (!caster->HasAura(SPELL_SUMMON_SKATEBOARD))
++                    return SPELL_FAILED_ONLY_MOUNTED;
++                break;
++        }
++        return SPELL_CAST_OK;
++    }
++}
+diff --git a/src/game/Skatecraft.h b/src/game/Skatecraft.h
+new file mode 100644
+index 0000000..2b874ed
+--- /dev/null
++++ b/src/game/Skatecraft.h
+@@ -0,0 +1,43 @@
++/*
++ * World of Skatecraft: Skateboarding, a secondary profession levelled by landing skate lines.
++ *
++ * The benilla client rides the Skate 3 engine and reports each landed line to us as an addon
++ * message ("SKATECRAFT\tL\t<points>"). We raise the Skateboarding skill, give character XP and
++ * teach the skate abilities as the skill grows. The skill line and the spells live in code, so
++ * the server needs no edited DBC files or database rows.
++ */
++
++#ifndef SKATECRAFT_H
++#define SKATECRAFT_H
++
++#include "Common.h"
++#include "SpellDefines.h"
++
++class Player;
++class Unit;
++class SpellEntry;
++
++namespace Skatecraft
++{
++    constexpr uint32 SKILL_SKATEBOARDING = 760;
++    constexpr uint32 SKILL_MAX = 300;
++
++    constexpr uint32 SPELL_SUMMON_SKATEBOARD = 90001; // the ride itself, an aura while on the board
++    constexpr uint32 SPELL_OLLIE_BOOST       = 90002;
++    constexpr uint32 SPELL_ROCKET_BOOST      = 90003;
++    constexpr uint32 SPELL_SPEED_DEMON       = 90004;
++    constexpr uint32 SPELL_MOON_JUMP         = 90005;
++
++    // After the DBC stores load: the Skateboarding skill line and its race/class rule.
++    void LoadSkillLine();
++    // After spell_template loads: the skate spells.
++    void LoadSpells();
++    // On login: everyone can skate; abilities match the skill.
++    void OnLogin(Player* player);
++    // An addon message from the client; true when it was ours.
++    bool HandleAddonMessage(Player* player, std::string const& message);
++    // Extra cast checks for the skate spells; SPELL_CAST_OK otherwise.
++    SpellCastResult CheckCast(Unit const* caster, SpellEntry const* spell);
++}
++
++#endif
+diff --git a/src/game/Spells/Spell.cpp b/src/game/Spells/Spell.cpp
+index eaaaaf1..abd1b5d 100644
+--- a/src/game/Spells/Spell.cpp
++++ b/src/game/Spells/Spell.cpp
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "Spell.h"
++#include "Skatecraft.h"
+ #include "Log.h"
+ #include "Opcodes.h"
+ #include "CharacterDatabaseCache.h"
+@@ -5301,6 +5302,13 @@ void Spell::RemoveChanneledAuraHolder(SpellAuraHolder* holder, AuraRemoveMode mo
+ 
+ SpellCastResult Spell::CheckCast(bool strict)
+ {
++    if (m_casterUnit)
++    {
++        SpellCastResult skate = Skatecraft::CheckCast(m_casterUnit, m_spellInfo);
++        if (skate != SPELL_CAST_OK)
++            return skate;
++    }
++
+     if (m_caster->IsPlayer() && m_caster->ToPlayer()->HasCheatOption(PLAYER_CHEAT_NO_CHECK_CAST))
+         return SPELL_CAST_OK;
+ 
+diff --git a/src/game/Spells/SpellMgr.h b/src/game/Spells/SpellMgr.h
+index 924cea0..820afa1 100644
+--- a/src/game/Spells/SpellMgr.h
++++ b/src/game/Spells/SpellMgr.h
+@@ -715,6 +715,19 @@ class SpellMgr
+         uint32 GetMaxSpellId() const { return mSpellEntryMap.size(); }
+         bool IsExistingSpellId(uint32 id) const { return (mExistingSpellsSet.find(id) != mExistingSpellsSet.end()); }
+ 
++        // A spell defined in code (World of Skatecraft).
++        SpellEntry* AddCustomSpell(uint32 id)
++        {
++            if (id >= GetMaxSpellId())
++                mSpellEntryMap.resize(id + 1);
++            std::unique_ptr<SpellEntry> spell = std::make_unique<SpellEntry>();
++            spell->Id = id;
++            spell->Internal |= SPELL_INTERNAL_CUSTOM;
++            mSpellEntryMap[id] = std::move(spell);
++            mExistingSpellsSet.insert(id);
++            return mSpellEntryMap[id].get();
++        }
++
+         // spell_mod
+         SpellEntry const*  OverwriteSpellEntry(uint32 id)
+         {
+diff --git a/src/game/World.cpp b/src/game/World.cpp
+index ca0b522..ee84998 100644
+--- a/src/game/World.cpp
++++ b/src/game/World.cpp
+@@ -24,6 +24,7 @@
+ */
+ 
+ #include "World.h"
++#include "Skatecraft.h"
+ #include "Database/DatabaseEnv.h"
+ #include "Config/Config.h"
+ #include "Platform/Define.h"
+@@ -1365,6 +1366,7 @@ void World::SetInitialWorldSettings()
+ 
+     sLog.Out(LOG_BASIC, LOG_LVL_MINIMAL, "Loading spells ...");
+     sSpellMgr.LoadSpells();
++    Skatecraft::LoadSpells();
+ 
+     sObjectMgr.LoadFactions();
+ 
+diff --git a/src/shared/Progression.h b/src/shared/Progression.h
+index f9a08bc..a92c9e0 100644
+--- a/src/shared/Progression.h
++++ b/src/shared/Progression.h
+@@ -33,7 +33,7 @@
+ // Change this to define which build of the game to emulate.
+ // Has an effect on things such as core gameplay mechanics,
+ // loading of client data, and network packets structure.
+-#define SUPPORTED_CLIENT_BUILD CLIENT_BUILD_1_12_1
++#define SUPPORTED_CLIENT_BUILD 5875
+ 
+ // This defines which client builds the world server will accept.
+ #if SUPPORTED_CLIENT_BUILD >= CLIENT_BUILD_1_12_1

@@ -25,7 +25,8 @@ crates/benilla-app/Cargo.toml, the KeyBoneID and accessor additions in
 crates/benilla-assets/src/model.rs, crates/benilla-world/src/rig_anim.rs,
 crates/benilla-world/src/rig_anim/{pose,global_seq}.rs and
 crates/benilla-world/src/collision/one_sided.rs (with the matching field in
-benilla's test fixtures), the schedule and world-API ratchets
+benilla's test fixtures), the Skateboarding profession's client data in
+crates/benilla-formats/src/{skatecraft,chain,lib}.rs, the schedule and world-API ratchets
 (game_plugins.rs, tests/world_api_wall.rs), .github/, plus tools/, setup/,
 play scripts and these docs.
 
@@ -58,6 +59,11 @@ vmangos (https://github.com/vmangos/core) and vmangos-deploy
 (https://github.com/mserajnik/vmangos-deploy) run the local server; setup
 downloads them from their own sources. vgmstream (https://vgmstream.org)
 decodes the Skate 3 audio during setup.
+
+setup/vmangos/skatecraft.patch is a patch to vmangos that adds the
+Skateboarding profession; setup applies it when it builds the server image.
+Like vmangos, the patch is under the GNU General Public License, version 2 or
+later.
 
 --------------------------------------------------------------------------------
 Game content

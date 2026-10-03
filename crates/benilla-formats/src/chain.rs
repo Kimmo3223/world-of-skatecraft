@@ -118,6 +118,7 @@ impl Chain {
         let archive = self.archive_for(name)?;
         archive
             .read_file(name)
+            .map(|bytes| crate::skatecraft::patch(name, bytes))
             .with_context(|| format!("reading {name} from {}", archive.path().display()))
     }
 

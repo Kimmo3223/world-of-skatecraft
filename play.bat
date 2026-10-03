@@ -1,6 +1,6 @@
 @echo off
 rem Starts the local server (if it is not running) and the game. Run setup.bat first.
-rem In game: J hops on/off the skateboard (Xbox-style controller), K swaps the skate camera.
+rem In game: J summons/dismisses the skateboard (Xbox-style controller), K swaps the skate camera.
 cd /d "%~dp0"
 if not exist target\release\benilla.exe (
     echo Not built yet: run setup.bat first.

@@ -6,6 +6,7 @@
 
 mod board;
 mod export;
+mod profession;
 mod rails;
 mod rig;
 mod sound;
@@ -118,6 +119,7 @@ enum Job {
         dt: f32,
         input: InputFrame,
         aspect: f32,
+        boosts: profession::Boosts,
     },
     Suspend,
 }
@@ -137,6 +139,10 @@ struct Frame {
     velocity: Vec3,
     tick: u64,
     state: String,
+    /// Landed lines so far: count, summed points, the last one's trick.
+    landed_lines: u32,
+    landed_points: f64,
+    landed_trick: String,
 }
 
 fn frame(p: skate_host::bridge::Pose) -> Frame {
@@ -154,6 +160,9 @@ fn frame(p: skate_host::bridge::Pose) -> Frame {
         velocity: Vec3::from_array(p.velocity.to_array()),
         tick: p.tick,
         state: p.state,
+        landed_lines: p.landed_lines,
+        landed_points: p.landed_points,
+        landed_trick: p.landed_trick,
     }
 }
 
@@ -176,6 +185,12 @@ struct Host {
     autostarted: bool,
     /// Whether the last poll found a pad, so connects and losses are logged once.
     pad_seen: bool,
+    /// The engine's landed-line count and points when last reported.
+    landed: Option<(u32, f64)>,
+    /// We cancelled Summon Skateboard and its aura has not gone yet: do not ride on it.
+    dismissing: bool,
+    /// Rocket Boost's aura was on us last frame.
+    rocket_on: bool,
 }
 
 fn autostart_after() -> Option<f32> {
@@ -230,6 +245,7 @@ fn run_worker(
     let mut builds: Option<mpsc::Sender<(u64, Vec<Tri>)>> = None;
     let mut epoch = 0;
     let mut accumulated = 0.0;
+    let mut boost_state = profession::BoostState::default();
     while let Ok(job) = jobs.recv() {
         match job {
             Job::Activate {
@@ -297,6 +313,7 @@ fn run_worker(
                 dt,
                 input,
                 aspect,
+                boosts,
             } => {
                 let Some(s) = session.as_mut().filter(|_| e == epoch) else {
                     continue;
@@ -311,11 +328,15 @@ fn run_worker(
                 s.set_aspect_ratio(aspect);
                 s.collect(input, dt);
                 accumulated = (accumulated + dt).min(0.15);
+                if boosts.rocket {
+                    profession::rocket(s);
+                }
                 let mut advanced = false;
                 // The engine's camera can change the simulation period.
                 while accumulated >= s.period() {
                     accumulated -= s.period();
                     s.advance()?;
+                    profession::apply(s, &boosts, &mut boost_state, s.period());
                     advanced = true;
                 }
                 if advanced {
@@ -454,14 +475,22 @@ fn update(
     mut drive: ResMut<SkateDrive>,
     mut pose: ResMut<SkatePose>,
     mut audio: ResMut<sound::SkateAudio>,
+    profession: profession::Profession,
 ) {
     let aspect = windows
         .single()
         .map(|w| w.width() / w.height().max(1.0))
         .unwrap_or(16.0 / 9.0);
+    // On a Skatecraft server the Summon Skateboard aura is the ride.
+    let server_board = profession.server_board();
+    let auras = profession.auras();
     let riding = drive.active || host.activating;
     if riding && !player.may_skate() {
         stop(&mut host, &mut drive, &mut pose);
+        if server_board && auras.board {
+            profession.dismiss();
+            host.dismissing = true;
+        }
     }
     if keys.just_pressed(KeyCode::KeyK) && !ui.typing && drive.active {
         drive.engine_camera = !drive.engine_camera;
@@ -478,12 +507,32 @@ fn update(
         due
     });
     if (keys.just_pressed(KeyCode::KeyJ) && !ui.typing) || autostart {
-        if drive.active || host.activating {
+        if server_board {
+            if drive.active || host.activating || auras.board {
+                profession.dismiss();
+                host.dismissing = true;
+                stop(&mut host, &mut drive, &mut pose);
+            } else if player.may_skate() {
+                profession.summon();
+            }
+        } else if drive.active || host.activating {
             stop(&mut host, &mut drive, &mut pose);
         } else if player.may_skate() {
             start(&time, &collide, &player, aspect, &mut host);
         }
     }
+    if server_board {
+        if !auras.board {
+            host.dismissing = false;
+            if drive.active || host.activating {
+                stop(&mut host, &mut drive, &mut pose);
+            }
+        } else if !host.dismissing && !drive.active && !host.activating && player.may_skate() {
+            start(&time, &collide, &player, aspect, &mut host);
+        }
+    }
+    let rocket = auras.rocket && !host.rocket_on;
+    host.rocket_on = auras.rocket;
 
     let mut replies = Vec::new();
     if let Some(receive) = &host.receive {
@@ -516,6 +565,7 @@ fn update(
                     });
                 }
                 pose.active = true;
+                host.landed = Some((f.landed_lines, f.landed_points));
                 audio.reset();
                 audio.observe(&f.state, f.velocity);
                 present(f, host.origin, &mut drive, &mut pose);
@@ -549,6 +599,14 @@ fn update(
                             at("RIGHT_WHEELBACK"),
                             at("LEFTTOEBASE_REPARENTED"),
                         );
+                    }
+                }
+                if let Some((lines, points)) = host.landed {
+                    if f.landed_lines != lines {
+                        if server_board {
+                            profession.landed(f.landed_points - points, &f.landed_trick);
+                        }
+                        host.landed = Some((f.landed_lines, f.landed_points));
                     }
                 }
                 audio.observe(&f.state, f.velocity);
@@ -596,6 +654,10 @@ fn update(
             dt: time.delta_secs().min(0.1),
             input,
             aspect,
+            boosts: profession::Boosts {
+                rocket,
+                ..profession::Boosts::from_auras(auras)
+            },
         };
         if send.send(job).is_err() {
             stop(&mut host, &mut drive, &mut pose);

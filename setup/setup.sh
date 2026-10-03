@@ -187,13 +187,15 @@ if [ ! -f "$SERVER/compose.yaml" ]; then
 fi
 if [ ! -d "$SERVER/storage/mangosd/extracted-data/maps" ]; then
     step "Extracting server maps from your WoW client (this takes HOURS; leave it running)"
-    compose pull --quiet
+    docker pull --quiet "$SERVER_IMAGE" >/dev/null
     docker run --rm --user "$(id -u):$(id -g)" \
         -v "$(realpath "$ROOT/WoW")":/opt/vmangos/storage/client-data \
         -v "$SERVER/storage/mangosd/extracted-data":/opt/vmangos/storage/extracted-data \
         "$SERVER_IMAGE" extract-client-data </dev/null ||
         die "map extraction failed (see the lines above)"
 fi
+step "Building the server with the Skateboarding profession (first time: 30-60 minutes)"
+"$ROOT/setup/build-server.sh" "$SERVER" || die "the server build failed (see the lines above)"
 step "Starting the server"
 compose up -d
 printf '  waiting for the world server'
