@@ -15,20 +15,18 @@ use skate_host::bridge::Session;
 
 use crate::net::{ClientCommand, NetCommands, ObjectStore, SelfPlayer};
 
-/// Gravity's pull the engine rides under, m/s².
-const GRAVITY: f32 = 9.81;
-/// Moon Jump takes this share of gravity away in the air.
-const MOON_LIFT: f32 = 0.6;
+/// Moon Jump's share of gravity while in the air.
+const MOON_GRAVITY: f32 = 0.35;
 /// Ollie Boost's extra pop, m/s up, added as the board leaves the ground.
-const OLLIE_POP: f32 = 2.5;
+const OLLIE_POP: f32 = 3.5;
 /// Speed Demon's push along the direction of travel, m/s², up to its top speed (m/s).
-const SPEED_PUSH: f32 = 3.0;
-const SPEED_TOP: f32 = 16.0;
+const SPEED_PUSH: f32 = 6.0;
+const SPEED_TOP: f32 = 20.0;
 /// Speed Demon pushes only once rolling faster than this (m/s).
 const SPEED_ROLLING: f32 = 1.0;
 /// Rocket Boost's burst, m/s forward and up.
-const ROCKET_FORWARD: f32 = 8.0;
-const ROCKET_UP: f32 = 1.0;
+const ROCKET_FORWARD: f32 = 14.0;
+const ROCKET_UP: f32 = 1.5;
 
 /// The skate auras on us this frame.
 #[derive(Clone, Copy, Default, Debug)]
@@ -125,9 +123,19 @@ impl Boosts {
 }
 
 /// The worker's memory between ticks.
-#[derive(Default)]
 pub(super) struct BoostState {
     airborne: bool,
+    /// The gravity scale last set on the session.
+    gravity: f32,
+}
+
+impl Default for BoostState {
+    fn default() -> Self {
+        Self {
+            airborne: false,
+            gravity: 1.0,
+        }
+    }
 }
 
 /// Layers `boosts` over one simulation tick of `period` seconds, after it ran.
@@ -135,15 +143,22 @@ pub(super) fn apply(session: &mut Session, boosts: &Boosts, state: &mut BoostSta
     let airborne = session.airborne();
     let took_off = airborne && !state.airborne;
     state.airborne = airborne;
-    if !(boosts.ollie || boosts.speed || boosts.moon) {
+    // Gravity for the next tick; stock again once Moon Jump ends or we land.
+    let gravity = if boosts.moon && airborne {
+        MOON_GRAVITY
+    } else {
+        1.0
+    };
+    if gravity != state.gravity {
+        session.set_gravity_scale(gravity);
+        state.gravity = gravity;
+    }
+    if !(boosts.ollie || boosts.speed) {
         return;
     }
     let velocity = Vec3::from_array(session.motion().0);
     if boosts.ollie && took_off && velocity.y > 0.0 {
         add(session, Vec3::Y * OLLIE_POP);
-    }
-    if boosts.moon && airborne {
-        add(session, Vec3::Y * GRAVITY * MOON_LIFT * period);
     }
     let flat = Vec3::new(velocity.x, 0.0, velocity.z);
     let speed = flat.length();

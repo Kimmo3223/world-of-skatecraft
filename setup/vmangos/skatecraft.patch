@@ -279,10 +279,10 @@ index 0000000..3d23c78
 +}
 diff --git a/src/game/Skatecraft.h b/src/game/Skatecraft.h
 new file mode 100644
-index 0000000..2b874ed
+index 0000000..a9bf703
 --- /dev/null
 +++ b/src/game/Skatecraft.h
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,44 @@
 +/*
 + * World of Skatecraft: Skateboarding, a secondary profession levelled by landing skate lines.
 + *
@@ -307,11 +307,12 @@ index 0000000..2b874ed
 +    constexpr uint32 SKILL_SKATEBOARDING = 760;
 +    constexpr uint32 SKILL_MAX = 300;
 +
-+    constexpr uint32 SPELL_SUMMON_SKATEBOARD = 90001; // the ride itself, an aura while on the board
-+    constexpr uint32 SPELL_OLLIE_BOOST       = 90002;
-+    constexpr uint32 SPELL_ROCKET_BOOST      = 90003;
-+    constexpr uint32 SPELL_SPEED_DEMON       = 90004;
-+    constexpr uint32 SPELL_MOON_JUMP         = 90005;
++    // Spell ids stay below 65536: SMSG_INITIAL_SPELLS carries them as uint16.
++    constexpr uint32 SPELL_SUMMON_SKATEBOARD = 60001; // the ride itself, an aura while on the board
++    constexpr uint32 SPELL_OLLIE_BOOST       = 60002;
++    constexpr uint32 SPELL_ROCKET_BOOST      = 60003;
++    constexpr uint32 SPELL_SPEED_DEMON       = 60004;
++    constexpr uint32 SPELL_MOON_JUMP         = 60005;
 +
 +    // After the DBC stores load: the Skateboarding skill line and its race/class rule.
 +    void LoadSkillLine();
@@ -353,21 +354,21 @@ index eaaaaf1..abd1b5d 100644
          return SPELL_CAST_OK;
  
 diff --git a/src/game/Spells/SpellMgr.h b/src/game/Spells/SpellMgr.h
-index 924cea0..820afa1 100644
+index 924cea0..1499d17 100644
 --- a/src/game/Spells/SpellMgr.h
 +++ b/src/game/Spells/SpellMgr.h
 @@ -715,6 +715,19 @@ class SpellMgr
          uint32 GetMaxSpellId() const { return mSpellEntryMap.size(); }
          bool IsExistingSpellId(uint32 id) const { return (mExistingSpellsSet.find(id) != mExistingSpellsSet.end()); }
  
-+        // A spell defined in code (World of Skatecraft).
++        // A spell defined in code (World of Skatecraft). Not SPELL_INTERNAL_CUSTOM: our client
++        // knows these spells, so their auras take visible slots.
 +        SpellEntry* AddCustomSpell(uint32 id)
 +        {
 +            if (id >= GetMaxSpellId())
 +                mSpellEntryMap.resize(id + 1);
 +            std::unique_ptr<SpellEntry> spell = std::make_unique<SpellEntry>();
 +            spell->Id = id;
-+            spell->Internal |= SPELL_INTERNAL_CUSTOM;
 +            mSpellEntryMap[id] = std::move(spell);
 +            mExistingSpellsSet.insert(id);
 +            return mSpellEntryMap[id].get();

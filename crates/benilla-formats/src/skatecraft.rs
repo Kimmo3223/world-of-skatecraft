@@ -7,16 +7,18 @@
 
 /// The Skateboarding secondary skill.
 pub const SKILL_SKATEBOARDING: u32 = 760;
+// Spell ids stay below 65536: `SMSG_INITIAL_SPELLS` carries them as `u16`.
+
 /// The ride: an aura on us while we are on the board.
-pub const SPELL_SUMMON_SKATEBOARD: u32 = 90001;
+pub const SPELL_SUMMON_SKATEBOARD: u32 = 60001;
 /// Higher pop while the aura lasts.
-pub const SPELL_OLLIE_BOOST: u32 = 90002;
+pub const SPELL_OLLIE_BOOST: u32 = 60002;
 /// A one-second aura; its arrival is one forward burst.
-pub const SPELL_ROCKET_BOOST: u32 = 90003;
+pub const SPELL_ROCKET_BOOST: u32 = 60003;
 /// More push on the ground while the aura lasts.
-pub const SPELL_SPEED_DEMON: u32 = 90004;
+pub const SPELL_SPEED_DEMON: u32 = 60004;
 /// Lighter gravity in the air while the aura lasts.
-pub const SPELL_MOON_JUMP: u32 = 90005;
+pub const SPELL_MOON_JUMP: u32 = 60005;
 
 // SpellIcon.dbc
 const ICON_MECHASTRIDER: u32 = 1240;
@@ -40,6 +42,8 @@ struct SkateSpell {
     description: &'static str,
     aura: &'static str,
     icon: u32,
+    /// SpellVisual.dbc: the cast animation and effects, borrowed from stock spells.
+    visual: u32,
     /// SpellCastTimes.dbc
     cast_time: u32,
     /// SpellDuration.dbc
@@ -55,6 +59,7 @@ const SPELLS: [SkateSpell; 5] = [
                       earn experience. Cancel the aura to step off.",
         aura: "Riding a skateboard.",
         icon: ICON_MECHASTRIDER,
+        visual: 1703, // a mount summon: the cast and the puff
         cast_time: 16,
         duration: 21,
         cooldown_ms: 0,
@@ -65,6 +70,7 @@ const SPELLS: [SkateSpell; 5] = [
         description: "Pop much higher off the ground for 30 sec. Requires your skateboard.",
         aura: "Ollies pop higher.",
         icon: ICON_BOOTS,
+        visual: 63, // Slow Fall
         cast_time: 1,
         duration: 2,
         cooldown_ms: 120_000,
@@ -75,6 +81,7 @@ const SPELLS: [SkateSpell; 5] = [
         description: "A burst of speed in the direction you are rolling. Requires your skateboard.",
         aura: "Rocketing.",
         icon: ICON_FLARE,
+        visual: 1223, // Goblin Rocket Boots
         cast_time: 1,
         duration: 36,
         cooldown_ms: 30_000,
@@ -85,6 +92,7 @@ const SPELLS: [SkateSpell; 5] = [
         description: "Push harder and roll faster for 30 sec. Requires your skateboard.",
         aura: "Rolling faster.",
         icon: ICON_SPRINT,
+        visual: 6, // Sprint
         cast_time: 1,
         duration: 2,
         cooldown_ms: 180_000,
@@ -95,6 +103,7 @@ const SPELLS: [SkateSpell; 5] = [
         description: "Gravity loosens its grip on you for 20 sec. Requires your skateboard.",
         aura: "Floating through the air.",
         icon: ICON_MOONGLOW,
+        visual: 6768, // Levitate
         cast_time: 1,
         duration: 18,
         cooldown_ms: 300_000,
@@ -172,6 +181,7 @@ fn spell_rows() -> Vec<Row> {
             f[82] = TARGET_UNIT_CASTER;
             f[91] = SPELL_AURA_DUMMY;
             f[97] = 1.0f32.to_bits(); // multiple value
+            f[115] = s.visual;
             f[117] = s.icon;
             f[118] = s.icon;
             f[157] = 133; // the global cooldown category
