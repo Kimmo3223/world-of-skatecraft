@@ -6861,12 +6861,12 @@ checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 [[package]]
 name = "skate-core"
 version = "0.1.0"
-source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=7ff8f99a5363e3713051061c32e72e8b337abcd4#7ff8f99a5363e3713051061c32e72e8b337abcd4"
+source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=2af41542901a1376ea40fa089ad99c751ceab077#2af41542901a1376ea40fa089ad99c751ceab077"
 
 [[package]]
 name = "skate-data"
 version = "0.1.0"
-source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=7ff8f99a5363e3713051061c32e72e8b337abcd4#7ff8f99a5363e3713051061c32e72e8b337abcd4"
+source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=2af41542901a1376ea40fa089ad99c751ceab077#2af41542901a1376ea40fa089ad99c751ceab077"
 dependencies = [
  "flate2",
  "serde",
@@ -6878,7 +6878,7 @@ dependencies = [
 [[package]]
 name = "skate-host"
 version = "0.1.0"
-source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=7ff8f99a5363e3713051061c32e72e8b337abcd4#7ff8f99a5363e3713051061c32e72e8b337abcd4"
+source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=2af41542901a1376ea40fa089ad99c751ceab077#2af41542901a1376ea40fa089ad99c751ceab077"
 dependencies = [
  "bevy 0.19.1",
  "half",
@@ -6892,7 +6892,7 @@ dependencies = [
 [[package]]
 name = "skate-net"
 version = "0.1.0"
-source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=7ff8f99a5363e3713051061c32e72e8b337abcd4#7ff8f99a5363e3713051061c32e72e8b337abcd4"
+source = "git+https://github.com/Kimmo3223/2010-rust-rewrite-mashup?rev=2af41542901a1376ea40fa089ad99c751ceab077#2af41542901a1376ea40fa089ad99c751ceab077"
 dependencies = [
  "blake3",
  "half",

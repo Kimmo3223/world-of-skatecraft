@@ -1,9 +1,9 @@
 //! Skateboarding the profession: on a World of Skatecraft server the board is a spell. Casting
 //! Summon Skateboard puts its aura on us and the aura is the ride: we are on the board exactly
-//! while it lasts, and `J` casts or cancels it. The skate abilities are auras too; while one is on
-//! us it is layered over the simulation ([`Boosts`]). Each landed line is reported to the server,
-//! which raises the skill and gives experience. On a stock server (no Summon Skateboard in our
-//! spellbook) `J` simply hops on and off, as before.
+//! while it lasts, and `J` casts or cancels it. The skate abilities are auras too, cast from the
+//! D-pad or the action bar; while one is on us it tunes the simulation ([`Boosts`]). Each landed
+//! line is reported to the server, which raises the skill and gives experience. On a stock server
+//! (no Summon Skateboard in our spellbook) `J` simply hops on and off, as before.
 
 use benilla_formats::skatecraft::{
     SPELL_MOON_JUMP, SPELL_OLLIE_BOOST, SPELL_ROCKET_BOOST, SPELL_SPEED_DEMON,
@@ -15,18 +15,28 @@ use skate_host::bridge::Session;
 
 use crate::net::{ClientCommand, NetCommands, ObjectStore, SelfPlayer};
 
-/// Moon Jump's share of gravity while in the air.
+/// Moon Jump's share of gravity while the buff lasts.
 const MOON_GRAVITY: f32 = 0.35;
-/// Ollie Boost's extra pop, m/s up, added as the board leaves the ground.
-const OLLIE_POP: f32 = 3.5;
-/// Speed Demon's push along the direction of travel, m/s², up to its top speed (m/s).
-const SPEED_PUSH: f32 = 6.0;
-const SPEED_TOP: f32 = 20.0;
-/// Speed Demon pushes only once rolling faster than this (m/s).
-const SPEED_ROLLING: f32 = 1.0;
+/// Ollie Boost's multiplier on the engine's pop (ollies and grind pops).
+const OLLIE_POP: f32 = 1.8;
+/// Speed Demon's multiplier on the engine's push speed and power.
+const SPEED_PUSH: f32 = 1.6;
+/// Below this (m/s) Rocket Boost fires along the board rather than the roll.
+const ROCKET_ROLLING: f32 = 1.0;
 /// Rocket Boost's burst, m/s forward and up.
 const ROCKET_FORWARD: f32 = 14.0;
 const ROCKET_UP: f32 = 1.5;
+
+/// XInput D-pad bits and the abilities they cast. With LB held the D-pad is the engine's
+/// session markers instead.
+const DPAD: [(u16, u32); 4] = [
+    (0x0001, SPELL_OLLIE_BOOST),
+    (0x0008, SPELL_ROCKET_BOOST),
+    (0x0004, SPELL_SPEED_DEMON),
+    (0x0002, SPELL_MOON_JUMP),
+];
+/// XInput's left bumper.
+pub(super) const PAD_LB: u16 = 0x0100;
 
 /// The skate auras on us this frame.
 #[derive(Clone, Copy, Default, Debug)]
@@ -91,6 +101,22 @@ impl Profession<'_, '_> {
         });
     }
 
+    /// Casts the skate ability bound to a D-pad direction in `pressed` (XInput bits), if known.
+    pub(super) fn dpad(&self, pressed: u16) {
+        for (bit, spell_id) in DPAD {
+            let known = self
+                .actions
+                .as_ref()
+                .is_some_and(|a| a.spells.contains(&spell_id));
+            if pressed & bit != 0 && known {
+                self.send(ClientCommand::CastSpell {
+                    spell_id,
+                    target: None,
+                });
+            }
+        }
+    }
+
     /// Reports a landed line of `points` for the skill and experience.
     pub(super) fn landed(&self, points: f64, trick: &str) {
         info!("skate: landed {trick} for {points:.0} points");
@@ -122,48 +148,30 @@ impl Boosts {
     }
 }
 
-/// The worker's memory between ticks.
+/// The worker's memory between steps: the pop, push and gravity scales last set.
 pub(super) struct BoostState {
-    airborne: bool,
-    /// The gravity scale last set on the session.
-    gravity: f32,
+    tuning: (f32, f32, f32),
 }
 
 impl Default for BoostState {
     fn default() -> Self {
         Self {
-            airborne: false,
-            gravity: 1.0,
+            tuning: (1.0, 1.0, 1.0),
         }
     }
 }
 
-/// Layers `boosts` over one simulation tick of `period` seconds, after it ran.
-pub(super) fn apply(session: &mut Session, boosts: &Boosts, state: &mut BoostState, period: f32) {
-    let airborne = session.airborne();
-    let took_off = airborne && !state.airborne;
-    state.airborne = airborne;
-    // Gravity for the next tick; stock again once Moon Jump ends or we land.
-    let gravity = if boosts.moon && airborne {
-        MOON_GRAVITY
-    } else {
-        1.0
-    };
-    if gravity != state.gravity {
-        session.set_gravity_scale(gravity);
-        state.gravity = gravity;
-    }
-    if !(boosts.ollie || boosts.speed) {
-        return;
-    }
-    let velocity = Vec3::from_array(session.motion().0);
-    if boosts.ollie && took_off && velocity.y > 0.0 {
-        add(session, Vec3::Y * OLLIE_POP);
-    }
-    let flat = Vec3::new(velocity.x, 0.0, velocity.z);
-    let speed = flat.length();
-    if boosts.speed && !airborne && (SPEED_ROLLING..SPEED_TOP).contains(&speed) {
-        add(session, flat / speed * SPEED_PUSH * period);
+pub(super) fn apply(session: &mut Session, boosts: &Boosts, state: &mut BoostState) {
+    // The engine plans each jump at takeoff, so the boosts tune it rather than push it.
+    let tuning = (
+        if boosts.ollie { OLLIE_POP } else { 1.0 },
+        if boosts.speed { SPEED_PUSH } else { 1.0 },
+        if boosts.moon { MOON_GRAVITY } else { 1.0 },
+    );
+    if tuning != state.tuning {
+        session.set_boost_tuning(tuning.0, tuning.1);
+        session.set_gravity_scale(tuning.2);
+        state.tuning = tuning;
     }
 }
 
@@ -175,7 +183,7 @@ fn add(session: &mut Session, dv: Vec3) {
 pub(super) fn rocket(session: &mut Session) {
     let (velocity, deck_forward) = session.motion();
     let flat = Vec3::new(velocity[0], 0.0, velocity[2]);
-    let heading = if flat.length() > SPEED_ROLLING {
+    let heading = if flat.length() > ROCKET_ROLLING {
         flat
     } else {
         Vec3::new(deck_forward[0], 0.0, deck_forward[2])

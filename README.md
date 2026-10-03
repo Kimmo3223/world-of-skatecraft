@@ -61,6 +61,7 @@ Log in with the account you made during setup and create a character.
 | **J** | summon / dismiss your skateboard |
 | **K** | switch between the WoW camera and the Skate 3 camera |
 | controller | skate (Skate 3 controls) |
+| D-pad | skate abilities: ↑ Ollie Boost, → Rocket Boost, ← Speed Demon, ↓ Moon Jump |
 
 ### Skateboarding, the profession
 

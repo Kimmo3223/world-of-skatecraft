@@ -68,7 +68,7 @@ mint = "0.5"
 rand = "0.8"
 # Skate 3 mode: the skate engine, fetched from Chasm's 2010 Rust Rewrite Mashup (Kimmo3223's
 # branch adds Linux controller input); not part of this repository. See NOTICE.
-skate-host = { git = "https://github.com/Kimmo3223/2010-rust-rewrite-mashup", rev = "7ff8f99a5363e3713051061c32e72e8b337abcd4" }
+skate-host = { git = "https://github.com/Kimmo3223/2010-rust-rewrite-mashup", rev = "2af41542901a1376ea40fa089ad99c751ceab077" }
 serde_json = "1"
 
 # Wayland clipboard over the standard `wl_data_device`; arboard's speaks `wlr-data-control`,
