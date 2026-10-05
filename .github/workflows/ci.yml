@@ -67,12 +67,14 @@ jobs:
       - name: Toolchain
         run: rustup toolchain install && rustc -V
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: setup.ps1 parses
+      - name: setup scripts parse
         shell: powershell
         run: |
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile("$PWD\setup\setup.ps1", [ref]$null, [ref]$errors) | Out-Null
-          if ($errors) { $errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }; exit 1 }
+          foreach ($script in 'setup.ps1', 'build-server.ps1') {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile("$PWD\setup\$script", [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) { $errors | ForEach-Object { "${script}:$($_.Extent.StartLineNumber): $($_.Message)" }; exit 1 }
+          }
       - name: setup.ps1 -Doctor (informational; the runner has no Docker Desktop)
         shell: powershell
         continue-on-error: true
