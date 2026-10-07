@@ -93,3 +93,12 @@ PC yet. If you try it, please post how it went in Discussions (see the README).
 
 The folders are the same as on Linux, with `WoW` as a junction (a folder link) instead of a
 symlink. Stop the server with `docker compose -p world-of-skatecraft -f server\compose.yaml down`.
+
+Setup builds the server with the Skateboarding profession before it starts it (a few minutes the
+first time). An install made before that step ran the stock server; to switch it over without
+setting anything up again (maps and characters are kept):
+
+```bat
+powershell -ExecutionPolicy Bypass -File setup\build-server.ps1 -Deploy C:\skatecraft\server
+docker compose -p world-of-skatecraft -f C:\skatecraft\server\compose.yaml up -d
+```

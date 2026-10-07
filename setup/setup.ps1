@@ -188,6 +188,8 @@ if (-not (Test-Path (Join-Path $Server 'storage\mangosd\extracted-data\maps'))) 
             -v "${Extracted}:/opt/vmangos/storage/extracted-data" $ServerImage extract-client-data
     }
 }
+Step 'Building the server with the Skateboarding profession (a few minutes)'
+Invoke-Native 'the server build' { & (Join-Path $PSScriptRoot 'build-server.ps1') -Deploy $Server }
 Step 'Starting the server'
 Invoke-Native 'starting the server' { Invoke-Compose up -d }
 Write-Host -NoNewline '  waiting for the world server'

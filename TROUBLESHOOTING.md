@@ -69,5 +69,10 @@ are missing; run the BuildTools `winget` line from INSTALL.md and open a new ter
 
 **The build fails with "path too long".** Move the repo to a short path such as `C:\skatecraft`.
 
+**The server build fails or J does not give the Skateboarding profession.** Run
+`powershell -ExecutionPolicy Bypass -File setup\build-server.ps1 -Deploy server` and read its
+output, then `docker compose -p world-of-skatecraft -f server\compose.yaml up -d`. The first build
+compiles vmangos and takes a while; `SKATECRAFT_BUILD_JOBS` (default 4) sets how many cores it uses.
+
 **The build is very slow.** Antivirus scanning `target\` slows Rust builds a lot; add the repo
 folder as an exclusion in Windows Security if you're comfortable with that.

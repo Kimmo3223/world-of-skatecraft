@@ -87,8 +87,8 @@ abilities, buffs to drag onto your action bar; they work only while you are on t
 | 225 | Speed Demon | push harder, roll faster | 30 s | 3 min |
 | 300 | Moon Jump | lighter gravity in the air | 20 s | 5 min |
 
-The profession needs the patched server that the Linux setup builds (the Windows setup still runs
-the stock server). On another server **J** just hops on and off the board.
+The profession needs the patched server that setup builds (`setup/build-server.sh` on Linux,
+`setup\build-server.ps1` on Windows). On another server **J** just hops on and off the board.
 
 Your account is a GM, so chat commands like `.tele stormwind`, `.levelup 59` and
 `.additem <id>` work.
