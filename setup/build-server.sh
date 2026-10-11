@@ -12,10 +12,13 @@ PATCH="$ROOT/setup/vmangos/skatecraft.patch"
 # The vmangos commit the patch is made against.
 VMANGOS_REV=0e3ff01e76d4758e8a7c3108b2717cc785ed56fa
 JOBS=${SKATECRAFT_BUILD_JOBS:-4}
-# Tagged by the patch's contents, so a changed patch builds a new image.
-IMAGE="world-of-skatecraft/vmangos-server:5875-$(sha256sum "$PATCH" | cut -c1-12)"
+# Tagged by the patch's and the server Dockerfile's contents, so a changed patch or vmangos-deploy
+# update builds a new image.
+IMAGE="world-of-skatecraft/vmangos-server:5875-$(cat "$PATCH" "$DEPLOY/docker/server/Dockerfile" | sha256sum | cut -c1-12)"
 
 [ -f "$DEPLOY/compose.yaml" ] || { echo "no compose.yaml in $DEPLOY"; exit 1; }
+# The server Dockerfile needs BuildKit; without buildx this fails at once with a clear message.
+export DOCKER_BUILDKIT=1
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
     echo "Building $IMAGE (vmangos $VMANGOS_REV with the Skatecraft patch, $JOBS jobs)"
     CONTEXT=$(mktemp -d)
@@ -29,6 +32,6 @@ if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
         --build-arg VMANGOS_FAIL_ON_PATCH_ERROR=1 \
         "$CONTEXT"
 fi
-sed -i -E "s#image: (ghcr\.io/mserajnik/vmangos-server:5875|world-of-skatecraft/vmangos-server:[^[:space:]]+)#image: $IMAGE#" \
+sed -i -E "s#image: (&mangosd-image )?(ghcr\.io/mserajnik/vmangos-server[:@][^[:space:]]+|world-of-skatecraft/vmangos-server:[^[:space:]]+)#image: \1$IMAGE#" \
     "$DEPLOY/compose.yaml"
 echo "$DEPLOY/compose.yaml now runs $IMAGE"
