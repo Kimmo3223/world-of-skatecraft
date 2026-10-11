@@ -238,6 +238,10 @@ pub(super) struct Plan {
 #[derive(Default)]
 pub(super) struct Held {
     rotations: Vec<Quat>,
+    /// Our rig's locals as the ride began, put back when it ends: the evaluator writes only the
+    /// channels a clip has tracks for, so a hip translation written here would otherwise outlive
+    /// the ride and hold the model up at board height.
+    locals: Vec<Transform>,
 }
 
 /// SpineLow's unmapped children off to a side (the hip sheath points, attachments 32 and 33)
@@ -301,6 +305,13 @@ pub(super) fn retarget(
 ) {
     if !pose.active || pose.bones.is_empty() {
         held.rotations.clear();
+        let saved = std::mem::take(&mut held.locals);
+        if let Ok((_, _, mut rig)) = units.single_mut() {
+            if !saved.is_empty() && rig.locals.len() == saved.len() {
+                rig.locals = saved;
+                rig.pose_dirty = true;
+            }
+        }
         return;
     }
     let count = units.iter().count();
@@ -353,6 +364,7 @@ pub(super) fn retarget(
     // a rider's local is rewritten against another bone, so it cannot be read back.
     if held.rotations.len() != n {
         held.rotations = rig.locals.iter().map(|l| l.rotation).collect();
+        held.locals = rig.locals.clone();
     }
     let mut models = vec![Mat4::IDENTITY; n];
     for i in 0..n {
