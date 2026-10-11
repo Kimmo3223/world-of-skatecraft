@@ -188,9 +188,11 @@ fi
 if [ ! -d "$SERVER/storage/mangosd/extracted-data/maps" ]; then
     step "Extracting server maps from your WoW client (this takes HOURS; leave it running)"
     docker pull --quiet "$SERVER_IMAGE" >/dev/null
-    docker run --rm --user "$(id -u):$(id -g)" \
+    docker run --rm \
+        -e VMANGOS_DEPLOY_VERSION=1 \
+        -e VMANGOS_UID="$(id -u)" -e VMANGOS_GID="$(id -g)" \
         -v "$(realpath "$ROOT/WoW")":/opt/vmangos/storage/client-data \
-        -v "$SERVER/storage/mangosd/extracted-data":/opt/vmangos/storage/extracted-data \
+        -v "$SERVER/storage/mangosd/extracted-data":/opt/vmangos/storage/data \
         "$SERVER_IMAGE" extract-client-data </dev/null ||
         die "map extraction failed (see the lines above)"
 fi
