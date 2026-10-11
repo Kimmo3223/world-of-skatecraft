@@ -1,6 +1,7 @@
 # The gates of scripts/gates.sh that need neither a WoW install nor a display, on Linux, for a pull
 # request from a fork: a red one is seen before anyone builds it. A Windows job checks the game
-# still compiles there (World of Skatecraft has no Windows setup yet). The data-gated tests and a
+# still compiles there (World of Skatecraft has no Windows setup yet), and a macOS job does the same
+# on Apple Silicon. The data-gated tests and a
 # live run happen on the maintainer's machine before it lands.
 name: CI
 
@@ -77,5 +78,28 @@ jobs:
         shell: powershell
         continue-on-error: true
         run: powershell -ExecutionPolicy Bypass -File setup\setup.ps1 -Doctor
+      - name: check
+        run: cargo check --release -p benilla
+
+  macos:
+    # Compiles only, on Apple Silicon: nothing can be run here without the games.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: rustup toolchain install && rustc -V
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: setup scripts parse
+        run: bash -n setup/setup.sh && bash -n setup/build-server.sh && bash -n play.sh
+      - name: setup.sh --doctor (informational; the runner has no Docker Desktop)
+        continue-on-error: true
+        run: setup/setup.sh --doctor
       - name: check
         run: cargo check --release -p benilla

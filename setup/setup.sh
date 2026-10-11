@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# World of Skatecraft setup (Linux). Run from anywhere:
+# World of Skatecraft setup (Linux, macOS). Run from anywhere:
 #
 #   setup/setup.sh                       # everything, asking for the two game folders
 #   setup/setup.sh --wow DIR --skate DIR # same, without asking
@@ -27,9 +27,14 @@ ENGINE_URL=https://github.com/SK8-ENGINE/skate-3-rust-engine
 ENGINE_REV=cb79689
 CONVERTER_URL=https://raw.githubusercontent.com/Kimmo3223/2010-rust-rewrite-mashup/adb684e78ec07654f00e2a9da88d32ae02cc68bd/skate/converter/iw4l_skate_convert.py
 VGMSTREAM_URL=https://github.com/vgmstream/vgmstream/releases/download/r2117/vgmstream-linux.zip
+[ "$(uname -s)" = Darwin ] &&
+    VGMSTREAM_URL=https://github.com/vgmstream/vgmstream/releases/download/r2117/vgmstream-mac.zip
 SERVER_URL=https://github.com/mserajnik/vmangos-deploy
-SERVER_REV=f0692574b7955e78d68fea39372e0045360ce5ee
-SERVER_IMAGE=ghcr.io/mserajnik/vmangos-server:5875
+SERVER_REV=e9ba3fad0161ff277d5adfbc5b66e6b8114cb18b
+# vmangos-deploy's images by digest: their tags follow the deploy repo's latest version, and an
+# image of another version than SERVER_REV's compose file stops at start (VMANGOS_DEPLOY_VERSION).
+SERVER_IMAGE=ghcr.io/mserajnik/vmangos-server@sha256:ad631ae8c71b648114b67ad9ef716f74f8d43e9662bc0fe087c5e3d276acc717
+DATABASE_IMAGE=ghcr.io/mserajnik/vmangos-database@sha256:a2f889c73e313dc5a124468d325ab71a238fe61a285b4e882e310197d8d6efea
 
 step() { printf '\n==> %s\n' "$*"; }
 die() {
@@ -52,6 +57,7 @@ done
 
 # ── Doctor ─────────────────────────────────────────────────────────────────────────────────────
 distro() {
+    [ "$(uname -s)" = Darwin ] && { echo macos; return; }
     . /etc/os-release 2>/dev/null || true
     case " ${ID:-} ${ID_LIKE:-} " in
         *" nixos "*) echo nixos ;;
@@ -63,11 +69,12 @@ distro() {
 }
 packages_hint() {
     case "$(distro)" in
-        debian) echo "sudo apt install build-essential pkg-config libasound2-dev libudev-dev git curl python3 python3-venv docker.io docker-compose-v2" ;;
-        arch) echo "sudo pacman -S --needed base-devel pkgconf alsa-lib systemd-libs git curl python docker docker-compose" ;;
-        fedora) echo "sudo dnf install gcc pkgconf-pkg-config alsa-lib-devel systemd-devel git curl python3 docker docker-compose-plugin" ;;
+        debian) echo "sudo apt install build-essential pkg-config libasound2-dev libudev-dev git curl python3 python3-venv docker.io docker-compose-v2 docker-buildx" ;;
+        arch) echo "sudo pacman -S --needed base-devel pkgconf alsa-lib systemd-libs git curl python docker docker-compose docker-buildx" ;;
+        fedora) echo "sudo dnf install gcc pkgconf-pkg-config alsa-lib-devel systemd-devel git curl python3 docker docker-compose-plugin docker-buildx-plugin" ;;
+        macos) echo "xcode-select --install (C compiler, git), and Docker Desktop for Mac from docker.com (compose and buildx included)" ;;
         nixos) echo "enable Docker in configuration.nix (virtualisation.docker.enable = true;); everything else comes from shell.nix" ;;
-        *) echo "install: a C compiler, pkg-config, ALSA and libudev development files, git, curl, python3 with venv, Docker with the compose plugin" ;;
+        *) echo "install: a C compiler, pkg-config, ALSA and libudev development files, git, curl, python3 with venv, Docker with the compose and buildx plugins" ;;
     esac
 }
 
@@ -80,16 +87,24 @@ doctor() {
     }
     check "Rust (rustup/cargo)" "command -v cargo" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   (then open a new terminal)"
     check "C compiler" "command -v cc" "$(packages_hint)"
-    check "pkg-config + ALSA + libudev" "pkg-config --exists alsa libudev" "$(packages_hint)"
+    # macOS has CoreAudio and IOKit instead; the build needs neither ALSA nor udev there.
+    [ "$(distro)" = macos ] ||
+        check "pkg-config + ALSA + libudev" "pkg-config --exists alsa libudev" "$(packages_hint)"
     check "git" "command -v git" "$(packages_hint)"
     check "curl" "command -v curl" "$(packages_hint)"
     check "python3 with venv" "python3 -c 'import venv, ensurepip'" "$(packages_hint)"
     check "Docker" "command -v docker" "$(packages_hint)"
     check "Docker compose plugin" "docker compose version" "$(packages_hint)"
-    check "Docker running and usable by you" "docker info" \
-        "start Docker (sudo systemctl enable --now docker) and add yourself to its group: sudo usermod -aG docker \$USER, then log out and back in"
+    # vmangos-deploy's server Dockerfile uses BuildKit-only instructions (COPY --chmod, --exclude).
+    check "Docker buildx plugin" "docker buildx version" "$(packages_hint)"
+    if [ "$(distro)" = macos ]; then
+        check "Docker running" "docker info" "start Docker Desktop and wait until it says it is running"
+    else
+        check "Docker running and usable by you" "docker info" \
+            "start Docker (sudo systemctl enable --now docker) and add yourself to its group: sudo usermod -aG docker \$USER, then log out and back in"
+    fi
     local free
-    free=$(df -P -BG "$ROOT" | awk 'NR==2 {gsub("G","",$4); print $4}')
+    free=$(df -Pk "$ROOT" | awk 'NR==2 {print int($4 / 1048576)}')
     check "20 GB free disk (${free} GB)" "[ ${free:-0} -ge 20 ]" "free up disk space"
     if [ -e /dev/input/by-id ] && ! ls /dev/input/by-id/*event-joystick >/dev/null 2>&1; then
         printf '  note     no controller found right now; plug in an Xbox-style pad before playing\n'
@@ -109,7 +124,7 @@ ask_dir() { # var, prompt
         read -r -p "$2: " value </dev/tty
         value=${value/#\~/$HOME}
     done
-    printf -v "$1" '%s' "$(realpath -m "$value")"
+    printf -v "$1" '%s' "$(python3 -c 'import os, sys; print(os.path.abspath(sys.argv[1]))' "$value")"
 }
 
 # ── WoW client ─────────────────────────────────────────────────────────────────────────────────
@@ -175,23 +190,41 @@ SERVER="$ROOT/server"
 # One fixed project name, so the server is the same Docker project whatever the folder is called.
 export SKATECRAFT_SERVER_PROJECT=${SKATECRAFT_SERVER_PROJECT:-world-of-skatecraft}
 compose() { docker compose -p "$SKATECRAFT_SERVER_PROJECT" --project-directory "$SERVER" -f "$SERVER/compose.yaml" "$@"; }
-if [ ! -f "$SERVER/compose.yaml" ]; then
+if [ ! -f "$SERVER/compose.yaml" ] || ! grep -q VMANGOS_DEPLOY_VERSION "$SERVER/compose.yaml"; then
     step "Setting up the local vmangos server"
+    if [ -f "$SERVER/compose.yaml" ]; then
+        # A server from before vmangos-deploy's version 1: same database volume and map folder,
+        # so characters and maps carry over; only the checkout and compose.yaml are replaced.
+        compose down || true
+        mv "$SERVER/compose.yaml" "$SERVER/compose.yaml.pre-v1"
+        echo "  updating the server setup to vmangos-deploy version 1 (old file: server/compose.yaml.pre-v1)"
+    fi
     [ -d "$SERVER/.git" ] || git clone --quiet "$SERVER_URL" "$SERVER"
-    git -C "$SERVER" checkout --quiet "$SERVER_REV"
+    # vmangos-deploy rewrote its history on 2026-10-04, so an older clone needs a fetch and a reset.
+    git -C "$SERVER" fetch --quiet origin
+    git -C "$SERVER" reset --quiet --hard "$SERVER_REV"
     cp "$SERVER/config/mangosd.conf.example" "$SERVER/config/mangosd.conf"
     cp "$SERVER/config/realmd.conf.example" "$SERVER/config/realmd.conf"
-    TZ_NAME=$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || echo Etc/UTC)
-    sed -e "s#TZ=Etc/UTC#TZ=${TZ_NAME}#" -e "s#user: 1000:1000#user: $(id -u):$(id -g)#" \
+    TZ_NAME=$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null ||
+        readlink /etc/localtime 2>/dev/null | sed -n 's#.*/zoneinfo/##p' | grep . || echo Etc/UTC)
+    sed -e "s#TZ=Etc/UTC#TZ=${TZ_NAME}#" \
+        -e "s#VMANGOS_UID=1000#VMANGOS_UID=$(id -u)#" -e "s#VMANGOS_GID=1000#VMANGOS_GID=$(id -g)#" \
+        -e "s#image: ghcr.io/mserajnik/vmangos-database\$#image: ${DATABASE_IMAGE}#" \
+        -e "s#ghcr.io/mserajnik/vmangos-server:5875\$#${SERVER_IMAGE}#" \
         "$SERVER/compose.yaml.example" > "$SERVER/compose.yaml"
 fi
 if [ ! -d "$SERVER/storage/mangosd/extracted-data/maps" ]; then
     step "Extracting server maps from your WoW client (this takes HOURS; leave it running)"
     docker pull --quiet "$SERVER_IMAGE" >/dev/null
-    docker run --rm --user "$(id -u):$(id -g)" \
-        -v "$(realpath "$ROOT/WoW")":/opt/vmangos/storage/client-data \
-        -v "$SERVER/storage/mangosd/extracted-data":/opt/vmangos/storage/extracted-data \
-        "$SERVER_IMAGE" extract-client-data </dev/null ||
+    # The extractors write beside the client's Data, so they get a scratch folder holding it
+    # read-only rather than the WoW folder itself.
+    mkdir -p "$SERVER/storage/mangosd/client-data" "$SERVER/storage/mangosd/extracted-data"
+    docker run --rm \
+        -e VMANGOS_DEPLOY_VERSION=1 -e VMANGOS_UID="$(id -u)" -e VMANGOS_GID="$(id -g)" \
+        -v "$SERVER/storage/mangosd/client-data":/opt/vmangos/storage/client-data \
+        -v "$(realpath "$ROOT/WoW")/Data":/opt/vmangos/storage/client-data/Data:ro \
+        -v "$SERVER/storage/mangosd/extracted-data":/opt/vmangos/storage/data \
+        --entrypoint extract-client-data "$SERVER_IMAGE" </dev/null ||
         die "map extraction failed (see the lines above)"
 fi
 step "Building the server with the Skateboarding profession (a few minutes)"

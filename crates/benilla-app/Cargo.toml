@@ -67,8 +67,9 @@ mint = "0.5"
 # The gossip greeting's weighted draw, re-rolled per open as in the reference.
 rand = "0.8"
 # Skate 3 mode: the skate engine, fetched from Chasm's 2010 Rust Rewrite Mashup (Kimmo3223's
-# branch adds Linux controller input); not part of this repository. See NOTICE.
-skate-host = { git = "https://github.com/Kimmo3223/2010-rust-rewrite-mashup", rev = "099b1948e9c08394b20c760ef123da38ef347278" }
+# branch adds Linux controller input; craigxyz's fork of that branch adds macOS until it is merged
+# there); not part of this repository. See NOTICE.
+skate-host = { git = "https://github.com/craigxyz/2010-rust-rewrite-mashup", rev = "9acc8e938c6e2abe4ffea215c55d98bc82a95d02" }
 serde_json = "1"
 
 # Wayland clipboard over the standard `wl_data_device`; arboard's speaks `wlr-data-control`,

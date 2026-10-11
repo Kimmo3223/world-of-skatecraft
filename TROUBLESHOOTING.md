@@ -29,6 +29,10 @@ of it. If a CPU core or two is busy (`top`), it's working.
 If the map extraction was interrupted, delete `server/storage/mangosd/extracted-data/` and run
 setup again.
 
+**"This image expects 'VMANGOS_DEPLOY_VERSION=1'".** The server setup is older than the server
+images. `git pull`, then run setup again: it updates `server/` in place and keeps your characters
+and extracted maps.
+
 **The build failed.** Read the first `error:` line. Missing `alsa` or `libudev` means the
 development packages from the doctor's fix line aren't installed.
 

@@ -1,6 +1,6 @@
 # Installing World of Skatecraft
 
-`setup/setup.sh` (Linux) or `setup.bat` (Windows, experimental) does all of this for you. This page explains what it does and what it asks, so
+`setup/setup.sh` (Linux, macOS) or `setup.bat` (Windows, experimental) does all of this for you. This page explains what it does and what it asks, so
 you know what to expect. If a step fails, setup stops, says what to fix, and continues from that
 step when you run it again.
 
@@ -13,7 +13,7 @@ You need:
 | WoW 1.12.1, English, build 5875 | Your own copy. The folder with `WoW.exe` and `Data/` |
 | Skate 3 (Xbox 360), extracted | Your own disc or digital copy, extracted so you have `default.xex` and `data/` side by side. For a disc image use [extract-xiso](https://github.com/XboxDev/extract-xiso): `extract-xiso -x "Skate 3.iso"` |
 | An Xbox-style controller | Xbox pads on the `xpad` driver work best; Bluetooth and PlayStation pads work too |
-| Docker with the compose plugin | Your distribution's packages |
+| Docker with the compose and buildx plugins | Your distribution's packages; Docker Desktop on macOS |
 | ~20 GB free | WoW, the server's map data, the build |
 
 Then run `setup/setup.sh --doctor`. It checks everything below and prints the exact install
@@ -93,3 +93,25 @@ PC yet. If you try it, please post how it went in Discussions (see the README).
 
 The folders are the same as on Linux, with `WoW` as a junction (a folder link) instead of a
 symlink. Stop the server with `docker compose -p world-of-skatecraft -f server\compose.yaml down`.
+
+## 6. macOS (experimental)
+
+`setup/setup.sh` runs on macOS as it does on Linux. It has been run on Apple Silicon; Intel Macs
+are untested. The server images are multi-arch, so the server runs natively on Apple Silicon.
+
+1. Install the Xcode command line tools (`xcode-select --install`), [Rust](https://rustup.rs) and
+   [Docker Desktop](https://www.docker.com/products/docker-desktop/), which brings compose and
+   buildx. Start Docker Desktop and let it finish starting.
+2. Clone and run setup:
+
+   ```sh
+   git clone https://github.com/Kimmo3223/world-of-skatecraft.git
+   cd world-of-skatecraft
+   setup/setup.sh
+   ```
+
+3. Start the game with `./play.sh`.
+
+The skate engine reads the pad through IOKit with SDL's controller mappings; an 8BitDo SN30 Pro is
+tested, and Xbox and PlayStation pads have mappings too. extract-xiso has no Homebrew package: build
+it from its repository with CMake (`brew install cmake`) to extract a Skate 3 disc image.
