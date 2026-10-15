@@ -21,8 +21,6 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use skate_host::bridge::{ControllerTransport, InputFrame, PreparedCollision, Session};
 
-use crate::net::NetHandlerApp;
-
 /// The engine's unit is the meter; ours is the yard.
 const METERS_PER_YARD: f32 = 0.9144;
 /// Half extents (yards) of the collision box gathered around the skater.
@@ -738,16 +736,12 @@ fn start(
 }
 
 pub(crate) fn plugin(app: &mut App) {
+    score::plugin(app);
     app.init_resource::<Host>()
         .init_resource::<SkateDrive>()
         .init_resource::<SkatePose>()
         .init_resource::<board::Board>()
         .init_resource::<sound::SkateAudio>()
-        .init_resource::<score::SkateScore>()
-        .net_handler(
-            benilla_protocol::SessionEventKind::XpGain,
-            score::on_xp_gain,
-        )
         .add_systems(Startup, (preload, score::spawn))
         .add_systems(
             Update,
