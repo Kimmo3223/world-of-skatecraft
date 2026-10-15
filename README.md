@@ -23,8 +23,9 @@ fully offline against a local server.
 
 ## What you need
 
-- **Linux**, or **Windows (experimental, testers wanted)**: the Windows setup is new and untested
-  on real machines; please report how it goes (see Help).
+- **Linux**, **macOS (Apple Silicon, experimental)** or **Windows (experimental, testers
+  wanted)**: the Windows setup is new and untested on real machines; please report how it goes
+  (see Help).
 - **World of Warcraft 1.12.1**, English client (build 5875).
 - **Skate 3 for Xbox 360, extracted**: the folder with `default.xex` and `data/` (an ISO file
   doesn't work; extract it first).
@@ -35,6 +36,16 @@ fully offline against a local server.
 ## Install
 
 Linux:
+
+```sh
+git clone https://github.com/Kimmo3223/world-of-skatecraft.git
+cd world-of-skatecraft
+setup/setup.sh
+```
+
+macOS (experimental): install the Xcode command line tools (`xcode-select --install`),
+[Rust](https://rustup.rs) and [Docker Desktop](https://www.docker.com/products/docker-desktop/),
+start Docker Desktop, then:
 
 ```sh
 git clone https://github.com/Kimmo3223/world-of-skatecraft.git
@@ -57,7 +68,7 @@ creates your game account and builds the game. Step-by-step details: [INSTALL.md
 ## Play
 
 ```sh
-./play.sh        # Linux
+./play.sh        # Linux, macOS
 play.bat         # Windows
 ```
 
@@ -87,8 +98,8 @@ abilities, buffs to drag onto your action bar; they work only while you are on t
 | 225 | Speed Demon | push harder, roll faster | 30 s | 3 min |
 | 300 | Moon Jump | lighter gravity in the air | 20 s | 5 min |
 
-The profession needs the patched server that the Linux setup builds (the Windows setup still runs
-the stock server). On another server **J** just hops on and off the board.
+The profession needs the patched server that the Linux and macOS setup builds (the Windows setup
+still runs the stock server). On another server **J** just hops on and off the board.
 
 Your account is a GM, so chat commands like `.tele stormwind`, `.levelup 59` and
 `.additem <id>` work.
